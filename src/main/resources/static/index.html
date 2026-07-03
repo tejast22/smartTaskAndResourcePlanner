@@ -84,9 +84,9 @@
 </section>
 </body>
 <script>
-    //to load data from java
+    // 1. FIX: Added /tasks to the endpoint path so it fetches the JSON array data
     function loadTasks(){
-        fetch('https://smarttaskandresourceplanner.onrender.com/')
+        fetch('https://smarttaskandresourceplanner.onrender.com/tasks')
             .then(response => response.json())
             .then(tasks => {
                 const tableBody = document.getElementById('task-table-body');
@@ -98,14 +98,11 @@
                     let actionButtonHtml = '';
 
                     if(task.status.toLowerCase() === 'pending'){
-                        actionButtonHtml = `<button onclick="changeStatus('${task.id}',
-                        'working')" class="bg-blue-500 text-white px-2 py-1 rounded
-                        text-sm">Start Working</button>`;
+                        actionButtonHtml = `<button onclick="changeStatus('${task.id}', 'working')" class="bg-blue-500 text-white px-2 py-1 rounded text-sm">Start Working</button>`;
                     }else if(task.status.toLowerCase() === 'working'){
-                        actionButtonHtml = `<button onclick="changeStatus('${task.id}', 'Completed')"
-                        class="bg-green-500 text-white px-2 py-1 rounded text-sm">Mark Completed</button>`;
+                        actionButtonHtml = `<button onclick="changeStatus('${task.id}', 'Completed')" class="bg-green-500 text-white px-2 py-1 rounded text-sm">Mark Completed</button>`;
                     }else if(task.status.toLowerCase() === 'completed'){
-                        actionButtonHtml = `<span class="text-gray-500 italic font=semibold">✔️ Done</span>`;
+                        actionButtonHtml = `<span class="text-gray-500 italic font-semibold">✔️ Done</span>`;
                     }
 
                     //build the row
@@ -149,7 +146,7 @@
         };
 
         //sending post request to java
-        fetch('http://localhost:8080/tasks',{
+        fetch('https://smarttaskandresourceplanner.onrender.com/tasks',{
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify(newTask)
@@ -162,24 +159,23 @@
             });
     });
 
+    // 2. FIX: Pointed sorting fetch to your specific sorting endpoint if you have one (e.g., /tasks/sort), or kept it clean.
     function sortTasks() {
-        fetch('http://localhost:8080/tasks/sort')
+        fetch('https://smarttaskandresourceplanner.onrender.com/tasks/sort') // Make sure this matches your Spring Boot @GetMapping for sorting
             .then(response => {
                 if (!response.ok) throw new Error("Server error: " + response.status);
                 return response.json();
             })
             .then(tasks => {
-                console.log("Data received from server:", tasks); // Check this in the Console tab
+                console.log("Data received from server:", tasks);
                 const tableBody = document.getElementById('task-table-body');
                 tableBody.innerHTML = '';
                 tasks.forEach(task => {
                     let actionButtonHtml = '';
                     if(task.status.toLowerCase() === 'pending'){
-                        actionButtonHtml = `<button  onclick="changeStatus('${task.id}', 'working')"
-                        class="bg-blue-500 text-white px-2 py-1 rounded text-sm">Start Working</button>`;
+                        actionButtonHtml = `<button  onclick="changeStatus('${task.id}', 'working')" class="bg-blue-500 text-white px-2 py-1 rounded text-sm">Start Working</button>`;
                     }else if(task.status.toLowerCase() === 'working'){
-                        actionButtonHtml = `<button onclick="changeStatus('${task.id}', 'Completed')"
-                        class="bg-green-500 text-white px-2 py-1 rounded text-sm">Mark Completed</button>`;
+                        actionButtonHtml = `<button onclick="changeStatus('${task.id}', 'Completed')" class="bg-green-500 text-white px-2 py-1 rounded text-sm">Mark Completed</button>`;
                     }else if(task.status.toLowerCase() === 'completed'){
                         actionButtonHtml = `<span class="text-gray-500 italic font-semibold">✔️ Done</span>`;
                     }
@@ -196,8 +192,9 @@
             .catch(error => console.error('Error sorting tasks:', error));
     }
 
+    // 3. FIX: Pointed the stack undo action path accurately to your custom /tasks/undo route endpoint
     function undoLastAction(){
-        fetch('http://localhost:8080/tasks/undo',{
+        fetch('https://smarttaskandresourceplanner.onrender.com/tasks/undo',{
             method: 'POST'
         })
             .then(response => {
@@ -207,7 +204,6 @@
                 throw new Error("Nothing left to undo");
             })
             .then(updatedTask => {
-                //call your existing function that prints the array to the screen
                 loadTasks();
             })
             .catch(error => {
@@ -216,12 +212,12 @@
     }
 
     function changeStatus(id , newStatus){
-        fetch(`http://localhost:8080/tasks/${id}/status?status=${newStatus}`,{
+        fetch(`https://smarttaskandresourceplanner.onrender.com/tasks/${id}/status?status=${newStatus}`,{
             method: 'PUT'
         })
             .then(response => {
                 if(response.ok){
-                    loadTasks(); //it refreshes the table to see the updated status and button
+                    loadTasks(); //refreshes the table
                 }
             });
     }
