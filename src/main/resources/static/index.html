@@ -86,7 +86,7 @@
 <script>
     //to load data from java
     function loadTasks(){
-        fetch('http://localhost:8080/tasks')
+        fetch('https://smarttaskandresourceplanner.onrender.com/')
             .then(response => response.json())
             .then(tasks => {
                 const tableBody = document.getElementById('task-table-body');
