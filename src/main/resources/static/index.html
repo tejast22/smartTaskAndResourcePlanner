@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Task and Resource Planner</title>
+    <style>
+        body{
+            font-family:sans-serif;
+            background-color:#f4f4f9;
+            padding:20px;
+        }
+        section{
+            background-color:white;
+            padding:20px;
+            margin-bottom:30px;
+            border-radius:8px;
+            box-shadow:1px 1px 1px #ddd;
+        }
+        form{
+            display:flex;
+            flex-direction:column;
+            gap:15px;
+            max-width:400px;
+        }
+        input,select,button{
+            padding:10px;
+            border:1px solid lightblue;
+            border-radius:4px;
+        }
+        button{
+            background-color:blue;
+            color:white;
+            border:none;
+            cursor:pointer;
+        }
+        table{
+            width:100%;
+            border-collapse:collapse;
+        }
+        th,td{
+            padding:12px;
+            border-bottom:1px solid lightblue;
+            text-align:left;
+        }
+        th{
+            color:black;
+        }
+    </style>
+</head>
+<body>
+<section>
+    <h2>Create a Task</h2>
+    <form id="task-form" action="/tasks" method="POST">
+        <input type="text" placeholder="Task ID" name="id">
+        <input type="text" placeholder="Task Name" name="title">
+        <select name="status">
+            <option>Pending</option>
+            <option>Completed</option>
+            <option>Working</option>
+        </select>
+        <input type="number" placeholder="Priority (1-10)" name="priority" min="1" max="10" required>
+        <button type="button" onclick="document.getElementById('task-form').dispatchEvent(new Event('submit'))">Add Task</button>
+    </form>
+</section>
+<section>
+    <button type="button" onclick="sortTasks()">Sort by Priority</button>
+    <button onclick="undoLastAction()" class="bg-gray-500 text-white px-4 py-2 rounded
+            ml-2">Undo Last Action</button>
+    <h2>Task Board</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="task-table-body">
+        </tbody>
+    </table>
+</section>
+</body>
+<script>
+    //to load data from java
+    function loadTasks(){
+        fetch('http://localhost:8080/tasks')
+            .then(response => response.json())
+            .then(tasks => {
+                const tableBody = document.getElementById('task-table-body');
+                tableBody.innerHTML = ''; //clearing the existing rows
+
+                //looping the array
+                tasks.forEach(task => {
+                    //step the state machine decide which button to show
+                    let actionButtonHtml = '';
+
+                    if(task.status.toLowerCase() === 'pending'){
+                        actionButtonHtml = `<button onclick="changeStatus('${task.id}',
+                        'working')" class="bg-blue-500 text-white px-2 py-1 rounded
+                        text-sm">Start Working</button>`;
+                    }else if(task.status.toLowerCase() === 'working'){
+                        actionButtonHtml = `<button onclick="changeStatus('${task.id}', 'Completed')"
+                        class="bg-green-500 text-white px-2 py-1 rounded text-sm">Mark Completed</button>`;
+                    }else if(task.status.toLowerCase() === 'completed'){
+                        actionButtonHtml = `<span class="text-gray-500 italic font=semibold">✔️ Done</span>`;
+                    }
+
+                    //build the row
+                    const row = `<tr>
+                    <td>${task.id}</td>
+                    <td>${task.title}</td>
+                    <td>${task.status}</td>
+                    <td>${task.priority}</td>
+                    <td>${actionButtonHtml}</td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                });
+            })
+            .catch(error => console.error('Error fetching tasks', error));
+    }
+    window.onload = loadTasks;
+
+    //to get form data
+    const form = document.getElementById('task-form');
+
+    //listen submit event
+    form.addEventListener('submit', function(event){
+        //preventing page from reloading
+        event.preventDefault();
+
+        //checking priority value for invalid input
+        const priorityValue = parseInt(document.querySelector('input[name="priority"]').value);
+
+        //checking priority value
+        if(priorityValue < 1 || priorityValue > 10 || isNaN(priorityValue)){
+            alert("Priority must be a number between 1 to 10");
+            return; //stops execution here
+        }
+
+        //getting data from inputs
+        const newTask = {
+            id: document.querySelector('input[name="id"]').value,
+            title: document.querySelector('input[name="title"]').value,
+            status: document.querySelector('select[name="status"]').value,
+            priority: parseInt(document.querySelector('input[name=priority]').value)
+        };
+
+        //sending post request to java
+        fetch('http://localhost:8080/tasks',{
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(newTask)
+        })
+            .then(response => {
+                if(response.ok) {
+                    loadTasks(); //refresh tasks
+                    form.reset(); //clearing input
+                }
+            });
+    });
+
+    function sortTasks() {
+        fetch('http://localhost:8080/tasks/sort')
+            .then(response => {
+                if (!response.ok) throw new Error("Server error: " + response.status);
+                return response.json();
+            })
+            .then(tasks => {
+                console.log("Data received from server:", tasks); // Check this in the Console tab
+                const tableBody = document.getElementById('task-table-body');
+                tableBody.innerHTML = '';
+                tasks.forEach(task => {
+                    let actionButtonHtml = '';
+                    if(task.status.toLowerCase() === 'pending'){
+                        actionButtonHtml = `<button  onclick="changeStatus('${task.id}', 'working')"
+                        class="bg-blue-500 text-white px-2 py-1 rounded text-sm">Start Working</button>`;
+                    }else if(task.status.toLowerCase() === 'working'){
+                        actionButtonHtml = `<button onclick="changeStatus('${task.id}', 'Completed')"
+                        class="bg-green-500 text-white px-2 py-1 rounded text-sm">Mark Completed</button>`;
+                    }else if(task.status.toLowerCase() === 'completed'){
+                        actionButtonHtml = `<span class="text-gray-500 italic font-semibold">✔️ Done</span>`;
+                    }
+                    const row = `<tr>
+                    <td>${task.id}</td>
+                    <td>${task.title}</td>
+                    <td>${task.status}</td>
+                    <td>${task.priority}</td>
+                    <td>${actionButtonHtml}</td>
+                </tr>`;
+                    tableBody.innerHTML += row;
+                });
+            })
+            .catch(error => console.error('Error sorting tasks:', error));
+    }
+
+    function undoLastAction(){
+        fetch('http://localhost:8080/tasks/undo',{
+            method: 'POST'
+        })
+            .then(response => {
+                if(response.ok){
+                    return response.json();
+                }
+                throw new Error("Nothing left to undo");
+            })
+            .then(updatedTask => {
+                //call your existing function that prints the array to the screen
+                loadTasks();
+            })
+            .catch(error => {
+                alert(error.message);
+            });
+    }
+
+    function changeStatus(id , newStatus){
+        fetch(`http://localhost:8080/tasks/${id}/status?status=${newStatus}`,{
+            method: 'PUT'
+        })
+            .then(response => {
+                if(response.ok){
+                    loadTasks(); //it refreshes the table to see the updated status and button
+                }
+            });
+    }
+</script>
+</html>
