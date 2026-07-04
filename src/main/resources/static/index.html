@@ -1,50 +1,90 @@
 <!DOCTYPE html>
-
 <html>
 <head>
     <meta charset="utf-8">
     <title>Task and Resource Planner</title>
     <style>
-        body{
-            font-family:sans-serif;
-            background-color:#f4f4f9;
-            padding:20px;
+        /* --- YOUR BASE CSS --- */
+        body {
+            font-family: sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
         }
-        section{
-            background-color:white;
-            padding:20px;
-            margin-bottom:30px;
-            border-radius:8px;
-            box-shadow:1px 1px 1px #ddd;
+        section {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 1px 1px 1px #ddd;
         }
-        form{
-            display:flex;
-            flex-direction:column;
-            gap:15px;
-            max-width:400px;
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 400px;
         }
-        input,select,button{
-            padding:10px;
-            border:1px solid lightblue;
-            border-radius:4px;
+        input, select, button {
+            padding: 10px;
+            border: 1px solid lightblue;
+            border-radius: 4px;
         }
-        button{
-            background-color:blue;
-            color:white;
-            border:none;
-            cursor:pointer;
+        table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        table{
-            width:100%;
-            border-collapse:collapse;
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid lightblue;
+            text-align: left;
         }
-        th,td{
-            padding:12px;
-            border-bottom:1px solid lightblue;
-            text-align:left;
+        th {
+            color: black;
         }
-        th{
-            color:black;
+
+        /* --- OUR NEW CUSTOM BUTTON CSS --- */
+        .action-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .btn-small {
+            padding: 6px 12px;
+            border-radius: 4px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .btn-blue { background-color: #3b82f6; }
+        .btn-blue:hover { background-color: #2563eb; }
+
+        .btn-gray { background-color: #6b7280; }
+        .btn-gray:hover { background-color: #4b5563; }
+
+        .btn-green { background-color: #22c55e; }
+        .btn-green:hover { background-color: #16a34a; }
+
+        .btn-yellow { background-color: #eab308; }
+        .btn-yellow:hover { background-color: #ca8a04; }
+
+        .btn-red { background-color: #ef4444; }
+        .btn-red:hover { background-color: #dc2626; }
+
+        .status-done {
+            color: #16a34a;
+            font-style: italic;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        /* Specific style for the Sort button */
+        .btn-main {
+            background-color: blue;
+            color: white;
+            border: none;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -52,7 +92,6 @@
 <section>
     <h2>Create a Task</h2>
     <form id="task-form" action="/tasks" method="POST">
-        <input type="text" placeholder="Task ID" name="id">
         <input type="text" placeholder="Task Name" name="title">
         <select name="status">
             <option>Pending</option>
@@ -60,13 +99,11 @@
             <option>Working</option>
         </select>
         <input type="number" placeholder="Priority (1-10)" name="priority" min="1" max="10" required>
-        <button type="button" onclick="document.getElementById('task-form').dispatchEvent(new Event('submit'))">Add Task</button>
+        <button class="btn-main" type="button" onclick="document.getElementById('task-form').dispatchEvent(new Event('submit'))">Add Task</button>
     </form>
 </section>
 <section>
-    <button type="button" onclick="sortTasks()">Sort by Priority</button>
-    <button onclick="undoLastAction()" class="bg-gray-500 text-white px-4 py-2 rounded
-            ml-2">Undo Last Action</button>
+
     <h2>Task Board</h2>
     <table>
         <thead>
@@ -75,151 +112,153 @@
             <th>Title</th>
             <th>Status</th>
             <th>Priority</th>
-            <th>Actions</th>
+            <th style="text-align:right">Actions</th>
         </tr>
         </thead>
         <tbody id="task-table-body">
         </tbody>
     </table>
 </section>
-</body>
+
 <script>
-    // 1. FIX: Added /tasks to the endpoint path so it fetches the JSON array data
+    // 1. The main load function
     function loadTasks(){
-        fetch('https://smarttaskandresourceplanner.onrender.com/tasks')
+        fetch('/tasks')
             .then(response => response.json())
             .then(tasks => {
                 const tableBody = document.getElementById('task-table-body');
-                tableBody.innerHTML = ''; //clearing the existing rows
+                tableBody.innerHTML = '';
 
-                //looping the array
                 tasks.forEach(task => {
-                    //step the state machine decide which button to show
-                    let actionButtonHtml = '';
+                    let actionButtonHtml = `<div class="action-buttons">`;
 
                     if(task.status.toLowerCase() === 'pending'){
-                        actionButtonHtml = `<button onclick="changeStatus('${task.id}', 'working')" class="bg-blue-500 text-white px-2 py-1 rounded text-sm">Start Working</button>`;
-                    }else if(task.status.toLowerCase() === 'working'){
-                        actionButtonHtml = `<button onclick="changeStatus('${task.id}', 'Completed')" class="bg-green-500 text-white px-2 py-1 rounded text-sm">Mark Completed</button>`;
-                    }else if(task.status.toLowerCase() === 'completed'){
-                        actionButtonHtml = `<span class="text-gray-500 italic font-semibold">✔️ Done</span>`;
+                        actionButtonHtml += `<button onclick="changeStatus('${task.id}', 'working')" class="btn-small btn-blue">Start Working</button>`;
+                    } else if(task.status.toLowerCase() === 'working'){
+                        actionButtonHtml += `
+                            <button onclick="changeStatus('${task.id}', 'pending')" class="btn-small btn-gray">⏪ Pending</button>
+                            <button onclick="changeStatus('${task.id}', 'completed')" class="btn-small btn-green">Mark Completed</button>`;
+                    } else if(task.status.toLowerCase() === 'completed'){
+                        actionButtonHtml += `
+                            <span class="status-done">✔️ Done</span>
+                            <button onclick="changeStatus('${task.id}', 'working')" class="btn-small btn-yellow">⏪ Re-open</button>`;
                     }
 
-                    //build the row
+                    actionButtonHtml += `<button onclick="deleteTask(${task.id})" class="btn-small btn-red">Delete</button></div>`;
+
                     const row = `<tr>
-                    <td>${task.id}</td>
-                    <td>${task.title}</td>
-                    <td>${task.status}</td>
-                    <td>${task.priority}</td>
-                    <td>${actionButtonHtml}</td>
+                        <td>${task.id}</td>
+                        <td>${task.title}</td>
+                        <td>${task.status}</td>
+                        <td>${task.priority}</td>
+                        <td>${actionButtonHtml}</td>
                     </tr>`;
                     tableBody.innerHTML += row;
                 });
             })
             .catch(error => console.error('Error fetching tasks', error));
     }
+
+    // Load tasks as soon as the page opens
     window.onload = loadTasks;
 
-    //to get form data
+    // 2. The Form Submit Function
     const form = document.getElementById('task-form');
-
-    //listen submit event
     form.addEventListener('submit', function(event){
-        //preventing page from reloading
         event.preventDefault();
 
-        //checking priority value for invalid input
         const priorityValue = parseInt(document.querySelector('input[name="priority"]').value);
 
-        //checking priority value
         if(priorityValue < 1 || priorityValue > 10 || isNaN(priorityValue)){
             alert("Priority must be a number between 1 to 10");
-            return; //stops execution here
+            return;
         }
 
-        //getting data from inputs
         const newTask = {
-            id: document.querySelector('input[name="id"]').value,
             title: document.querySelector('input[name="title"]').value,
             status: document.querySelector('select[name="status"]').value,
-            priority: parseInt(document.querySelector('input[name=priority]').value)
+            priority: priorityValue
         };
 
-        //sending post request to java
-        fetch('https://smarttaskandresourceplanner.onrender.com/tasks',{
+        fetch('/tasks',{
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify(newTask)
         })
             .then(response => {
                 if(response.ok) {
-                    loadTasks(); //refresh tasks
-                    form.reset(); //clearing input
+                    loadTasks();
+                    form.reset();
                 }
             });
     });
 
-    // 2. FIX: Pointed sorting fetch to your specific sorting endpoint if you have one (e.g., /tasks/sort), or kept it clean.
-    function sortTasks() {
-        fetch('https://smarttaskandresourceplanner.onrender.com/tasks/sort') // Make sure this matches your Spring Boot @GetMapping for sorting
-            .then(response => {
-                if (!response.ok) throw new Error("Server error: " + response.status);
-                return response.json();
-            })
-            .then(tasks => {
-                console.log("Data received from server:", tasks);
-                const tableBody = document.getElementById('task-table-body');
-                tableBody.innerHTML = '';
-                tasks.forEach(task => {
-                    let actionButtonHtml = '';
-                    if(task.status.toLowerCase() === 'pending'){
-                        actionButtonHtml = `<button  onclick="changeStatus('${task.id}', 'working')" class="bg-blue-500 text-white px-2 py-1 rounded text-sm">Start Working</button>`;
-                    }else if(task.status.toLowerCase() === 'working'){
-                        actionButtonHtml = `<button onclick="changeStatus('${task.id}', 'Completed')" class="bg-green-500 text-white px-2 py-1 rounded text-sm">Mark Completed</button>`;
-                    }else if(task.status.toLowerCase() === 'completed'){
-                        actionButtonHtml = `<span class="text-gray-500 italic font-semibold">✔️ Done</span>`;
-                    }
-                    const row = `<tr>
-                    <td>${task.id}</td>
-                    <td>${task.title}</td>
-                    <td>${task.status}</td>
-                    <td>${task.priority}</td>
-                    <td>${actionButtonHtml}</td>
-                </tr>`;
-                    tableBody.innerHTML += row;
-                });
-            })
-            .catch(error => console.error('Error sorting tasks:', error));
-    }
+    // 3. The Sort Function
+    // function sortTasks() {
+    //     fetch('tasks/sort')
+    //         .then(response => {
+    //             if (!response.ok) throw new Error("Server error: " + response.status);
+    //             return response.json();
+    //         })
+    //         .then(tasks => {
+    //             const tableBody = document.getElementById('task-table-body');
+    //             tableBody.innerHTML = '';
+    //
+    //             tasks.forEach(task => {
+    //                 let actionButtonHtml = `<div class="action-buttons">`;
+    //
+    //                 if(task.status.toLowerCase() === 'pending'){
+    //                     actionButtonHtml += `<button onclick="changeStatus('${task.id}', 'working')" class="btn-small btn-blue">Start Working</button>`;
+    //                 } else if(task.status.toLowerCase() === 'working'){
+    //                     actionButtonHtml += `
+    //                         <button onclick="changeStatus('${task.id}', 'pending')" class="btn-small btn-gray">⏪ Pending</button>
+    //                         <button onclick="changeStatus('${task.id}', 'completed')" class="btn-small btn-green">Mark Completed</button>`;
+    //                 } else if(task.status.toLowerCase() === 'completed'){
+    //                     actionButtonHtml += `
+    //                         <span class="status-done">✔️ Done</span>
+    //                         <button onclick="changeStatus('${task.id}', 'working')" class="btn-small btn-yellow">⏪ Re-open</button>`;
+    //                 }
+    //
+    //                 actionButtonHtml += `<button onclick="deleteTask(${task.id})" class="btn-small btn-red">Delete</button></div>`;
+    //
+    //                 const row = `<tr>
+    //                     <td>${task.id}</td>
+    //                     <td>${task.title}</td>
+    //                     <td>${task.status}</td>
+    //                     <td>${task.priority}</td>
+    //                     <td>${actionButtonHtml}</td>
+    //                 </tr>`;
+    //                 tableBody.innerHTML += row;
+    //             });
+    //         })
+    //         .catch(error => console.error('Error sorting tasks:', error));
+    // }
 
-    // 3. FIX: Pointed the stack undo action path accurately to your custom /tasks/undo route endpoint
-    function undoLastAction(){
-        fetch('https://smarttaskandresourceplanner.onrender.com/tasks/undo',{
-            method: 'POST'
-        })
-            .then(response => {
-                if(response.ok){
-                    return response.json();
-                }
-                throw new Error("Nothing left to undo");
-            })
-            .then(updatedTask => {
-                loadTasks();
-            })
-            .catch(error => {
-                alert(error.message);
-            });
-    }
-
+    // 4. Status Update Function
     function changeStatus(id , newStatus){
-        fetch(`https://smarttaskandresourceplanner.onrender.com/tasks/${id}/status?status=${newStatus}`,{
+        fetch(`/tasks/${id}/status?status=${newStatus}`,{
             method: 'PUT'
         })
             .then(response => {
                 if(response.ok){
-                    loadTasks(); //refreshes the table
+                    loadTasks();
                 }
             });
     }
+
+    // 5. Delete Function
+    function deleteTask(id){
+        if(confirm("Are you sure you want to delete this task?")){
+            fetch(`/tasks/${id}`,{
+                method: 'DELETE'
+            })
+                .then(response => {
+                    if(response.ok){
+                        loadTasks();
+                    }
+                });
+        }
+    }
 </script>
+</body>
 </html>

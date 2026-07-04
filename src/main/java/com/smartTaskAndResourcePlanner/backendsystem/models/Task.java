@@ -1,9 +1,20 @@
 package com.smartTaskAndResourcePlanner.backendsystem.models;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
 
+@Entity
+@Table(name ="tasks")//tells mongodb to store this in task
 public class Task {
-    private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)// maps this field to mongo id
+    private Long id;
     private String title;
     private String status;
 
@@ -13,20 +24,17 @@ public class Task {
 
     public Task() {}
 
-    public Task(String id, String title, String status, int priority){
-        this.id = id;
+    public Task(String title, String status, int priority){
         this.title = title;
         this.status = status;
-
         this.priority = priority;
     }
 
-    public String getId(){
+    public Long getId(){
         return id;
     }
 
-    public void setId(String id){
-        this.id = id;
+    public void setId(Long id){this.id = id;
     }
 
     public String getTitle(){
