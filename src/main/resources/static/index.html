@@ -41,6 +41,28 @@
             color: black;
         }
 
+        /* --- AUTH CONTAINER VANILLA CSS --- */
+        #auth-container {
+            background: #ffffff;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 1px 1px 1px #ddd;
+        }
+        #auth-inputs {
+            display: flex;
+            gap: 10px;
+            max-width: 600px;
+            margin-bottom: 15px;
+        }
+        #auth-inputs input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid lightblue;
+            border-radius: 4px;
+            outline: none;
+        }
+
         /* --- OUR NEW CUSTOM BUTTON CSS --- */
         .action-buttons {
             display: flex;
@@ -89,6 +111,18 @@
     </style>
 </head>
 <body>
+
+<section id="auth-container">
+    <h2 id="auth-title">User Account Control</h2>
+    <div id="auth-inputs">
+        <input type="text" id="auth-username" placeholder="Username">
+        <input type="password" id="auth-password" placeholder="Password">
+        <button id="btn-login" class="btn-small btn-blue" style="font-size:16px; padding:10px 20px;">Login</button>
+        <button id="btn-register" class="btn-small btn-green" style="font-size:16px; padding:10px 20px;">Register</button>
+    </div>
+    <p id="user-status" style="margin-top: 10px; font-weight: bold; color: #555;">Status: Not logged in (Using default guest view)</p>
+</section>
+
 <section>
     <h2>Create a Task</h2>
     <form id="task-form" action="/tasks" method="POST">
@@ -102,8 +136,8 @@
         <button class="btn-main" type="button" onclick="document.getElementById('task-form').dispatchEvent(new Event('submit'))">Add Task</button>
     </form>
 </section>
-<section>
 
+<section>
     <h2>Task Board</h2>
     <table>
         <thead>
@@ -121,6 +155,10 @@
 </section>
 
 <script>
+    // STEP 2: TRACK AUTHENTICATED STATE FROM LOCALSTORAGE
+    let currentUserId = localStorage.getItem('currentUserId') || null;
+    let currentUsername = localStorage.getItem('currentUsername') || "Guest";
+
     // 1. The main load function
     function loadTasks(){
         fetch('/tasks')
@@ -159,38 +197,36 @@
             .catch(error => console.error('Error fetching tasks', error));
     }
 
-    // Load tasks as soon as the page opens
-    window.onload = loadTasks;
+    // Run custom interface setups along with data fetching on page initialization
+    window.onload = function() {
+        loadTasks();
+        updateAuthUI();
+    };
 
     // 2. The Form Submit Function
     const form = document.getElementById('task-form');
     form.addEventListener('submit', function(event){
         event.preventDefault();
 
-        // 1. Grab both values right at the start
         const titleValue = document.querySelector('input[name="title"]').value.trim();
         const priorityValue = parseInt(document.querySelector('input[name="priority"]').value);
 
-        // 2. CHECK THE TITLE FIRST! (This fixes your issue)
         if (titleValue === "") {
             alert("Task name is required!");
-            return; // Stops execution immediately if empty
+            return;
         }
 
-        // 3. Check the priority second
         if(priorityValue < 1 || priorityValue > 10 || isNaN(priorityValue)){
             alert("Priority must be a number between 1 to 10");
-            return; // Stops execution if priority is bad
+            return;
         }
 
-        // 4. Build the task object using our validated titleValue
         const newTask = {
             title: titleValue,
             status: document.querySelector('select[name="status"]').value,
             priority: priorityValue
         };
 
-        // 5. Keep your excellent fetch logic exactly as it was!
         fetch('/tasks',{
             method: 'POST',
             headers: {'Content-Type':'application/json'},
@@ -215,46 +251,72 @@
             });
     });
 
-    // 3. The Sort Function
-    // function sortTasks() {
-    //     fetch('tasks/sort')
-    //         .then(response => {
-    //             if (!response.ok) throw new Error("Server error: " + response.status);
-    //             return response.json();
-    //         })
-    //         .then(tasks => {
-    //             const tableBody = document.getElementById('task-table-body');
-    //             tableBody.innerHTML = '';
-    //
-    //             tasks.forEach(task => {
-    //                 let actionButtonHtml = `<div class="action-buttons">`;
-    //
-    //                 if(task.status.toLowerCase() === 'pending'){
-    //                     actionButtonHtml += `<button onclick="changeStatus('${task.id}', 'working')" class="btn-small btn-blue">Start Working</button>`;
-    //                 } else if(task.status.toLowerCase() === 'working'){
-    //                     actionButtonHtml += `
-    //                         <button onclick="changeStatus('${task.id}', 'pending')" class="btn-small btn-gray">⏪ Pending</button>
-    //                         <button onclick="changeStatus('${task.id}', 'completed')" class="btn-small btn-green">Mark Completed</button>`;
-    //                 } else if(task.status.toLowerCase() === 'completed'){
-    //                     actionButtonHtml += `
-    //                         <span class="status-done">✔️ Done</span>
-    //                         <button onclick="changeStatus('${task.id}', 'working')" class="btn-small btn-yellow">⏪ Re-open</button>`;
-    //                 }
-    //
-    //                 actionButtonHtml += `<button onclick="deleteTask(${task.id})" class="btn-small btn-red">Delete</button></div>`;
-    //
-    //                 const row = `<tr>
-    //                     <td>${task.id}</td>
-    //                     <td>${task.title}</td>
-    //                     <td>${task.status}</td>
-    //                     <td>${task.priority}</td>
-    //                     <td>${actionButtonHtml}</td>
-    //                 </tr>`;
-    //                 tableBody.innerHTML += row;
-    //             });
-    //         })
-    //         .catch(error => console.error('Error sorting tasks:', error));
-    // }
+    // STEP 3: REGISTER AND LOGIN CLICK CLICK LISTENERS
+    document.getElementById('btn-register').addEventListener('click', function() {
+        const usernameInput = document.getElementById('auth-username').value.trim();
+        const passwordInput = document.getElementById('auth-password').value.trim();
+
+        if (!usernameInput || !passwordInput) {
+            alert("Please enter both username and password!");
+            return;
+        }
+
+        fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: usernameInput, password: passwordInput })
+        })
+            .then(async response => {
+                const data = await response.json();
+                alert(data.message);
+            })
+            .catch(err => console.error("Registration error:", err));
+    });
+
+    document.getElementById('btn-login').addEventListener('click', function() {
+        const usernameInput = document.getElementById('auth-username').value.trim();
+        const passwordInput = document.getElementById('auth-password').value.trim();
+
+        if (!usernameInput || !passwordInput) {
+            alert("Please enter both username and password!");
+            return;
+        }
+
+        fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: usernameInput, password: passwordInput })
+        })
+            .then(async response => {
+                if (!response.ok) {
+                    const data = await response.json();
+                    alert(data.message);
+                    return;
+                }
+
+                const data = await response.json();
+                localStorage.setItem('currentUserId', data.userId);
+                localStorage.setItem('currentUsername', data.username);
+
+                currentUserId = data.userId;
+                currentUsername = data.username;
+
+                updateAuthUI();
+                alert("Welcome, " + currentUsername + "!");
+            })
+            .catch(err => console.error("Login error:", err));
+    });
+
+    function updateAuthUI() {
+        const statusText = document.getElementById('user-status');
+        if (currentUserId) {
+            statusText.innerText = `Logged in as: ${currentUsername} (User ID: ${currentUserId})`;
+            statusText.style.color = "#22c55e";
+        } else {
+            statusText.innerText = "Status: Not logged in (Using default guest view)";
+            statusText.style.color = "#555";
+        }
+    }
 
     // 4. Status Update Function
     function changeStatus(id , newStatus){

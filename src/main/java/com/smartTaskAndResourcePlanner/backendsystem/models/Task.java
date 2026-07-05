@@ -1,10 +1,6 @@
 package com.smartTaskAndResourcePlanner.backendsystem.models;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
@@ -26,6 +22,11 @@ public class Task {
     @Min(1)
     @Max(10)
     private int priority;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false) // creates user id with foreign key
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private User user;
 
     public Task() {}
 
@@ -65,4 +66,7 @@ public class Task {
     public void setPriority(int priority){
         this.priority = priority;
     }
+
+    public User getUser(){return user;}
+    public void setUser(User user){this.user = user;}
 }

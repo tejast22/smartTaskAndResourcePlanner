@@ -2,6 +2,8 @@ package com.smartTaskAndResourcePlanner.backendsystem.services;
 
 import com.smartTaskAndResourcePlanner.backendsystem.models.Task;
 import com.smartTaskAndResourcePlanner.backendsystem.repositories.TaskRepository;
+import com.smartTaskAndResourcePlanner.backendsystem.models.User;
+import com.smartTaskAndResourcePlanner.backendsystem.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -13,14 +15,27 @@ import java.util.Optional;
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final UserRepository userRepository;
 
     @Autowired
-    public TaskService(TaskRepository taskRepository) {
+    public TaskService(TaskRepository taskRepository, UserRepository userRepository) {
         this.taskRepository = taskRepository;
         // Data now lives permanently in PostgreSQL (Supabase)!
+
+        this.userRepository = userRepository;
     }
 
     public Task addTask(Task task){
+        //search for user id if they don't exist create a default user automatically
+        User testUser = userRepository.findById(1L).orElseGet(() -> {
+            User defaultUser = new User("testuser", "password123");
+            return userRepository.save(defaultUser);
+        });
+
+        //attaching user to incoming task
+        task.setUser(testUser);
+
+        //saving the task and returing it back to the controller
         return taskRepository.save(task);
     }
 
