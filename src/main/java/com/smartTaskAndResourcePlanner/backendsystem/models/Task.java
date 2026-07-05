@@ -8,6 +8,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name ="tasks")//tells mongodb to store this in task
@@ -15,6 +17,9 @@ public class Task {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)// maps this field to mongo id
     private Long id;
+
+    @NotBlank(message = "Task name is required!")
+    @Size(min = 3, max = 50, message = "Task name must be between 3 and 50 characters")
     private String title;
     private String status;
 

@@ -185,11 +185,27 @@
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify(newTask)
         })
-            .then(response => {
-                if(response.ok) {
-                    loadTasks();
-                    form.reset();
+            .then(async response => {
+                // Check if the request failed (e.g., status 400 Bad Request)
+                if (!response.ok) {
+                    const errorData = await response.json();
+
+                    // Show the error message from the backend (title: "Task name is required!")
+                    if(errorData.title) {
+                        alert(errorData.title);
+                    } else {
+                        alert("Something went wrong with validation.");
+                    }
+                    return; // Stop here, don't reset the form
                 }
+
+                // If response.ok is true, everything is fine!
+                loadTasks();
+                form.reset();
+            })
+            .catch(error => {
+                console.error('Network error:', error);
+                alert("Could not connect to the server.");
             });
     });
 
