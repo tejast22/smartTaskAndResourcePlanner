@@ -20,44 +20,44 @@ public class TaskController {
         this.taskService = taskService;
     }
 
+    // 1. UPDATED: Accepts the user ID header to filter the task list
     @GetMapping
-    public List<Task> viewTasks(){
-        return taskService.getTheList();
+    public List<Task> viewTasks(@RequestHeader(value = "X-User-Id", required = false) Long userId){
+        Long targetUserId = (userId != null) ? userId :-1L; // Fallback to test user if guest
+        return taskService.getTasksForUser(targetUserId);
     }
 
+    // 2. UPDATED: Accepts the user ID header to save the task under the correct owner
     @PostMapping
-    public List<Task> createNewTask(@Valid @RequestBody Task newTask){
-        taskService.addTask(newTask);
-        return taskService.getTheList();
+    public List<Task> createNewTask(
+            @Valid @RequestBody Task newTask,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId){
+
+        Long targetUserId = (userId != null) ? userId : 1L;
+        taskService.addTask(newTask, targetUserId);
+        return taskService.getTasksForUser(targetUserId); // Return only this user's updated list!
     }
 
-    /* * TEMPORARILY DISABLED: Migrating away from in-memory TaskHistoryList.
-     * Will rebuild using a database-backed Audit Log in the future.
-     *
-    @PostMapping("/undo")
-    public List<Task> undoLastAction(){
-        // Logic to be rebuilt
-        return taskService.getTheList();
-    }
-    */
-
-//    @GetMapping("/sort")
-//    public List<Task> getSortedTasks(){
-//        // Notice we changed this to call the new service method directly
-//        return taskService.getSortedTasks();
-//    }
-
-    // FIX: Changed @PathVariable String id to @PathVariable Long id
+    // 3. UPDATED: Passing the header isn't strictly needed for status changes or deletes yet,
+    // but we change the return statement so they also return just the filtered list!
     @PutMapping("/{id}/status")
-    public List<Task> updateStatus(@PathVariable Long id, @RequestParam String status){
+    public List<Task> updateStatus(
+            @PathVariable Long id,
+            @RequestParam String status,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId){
+
         taskService.updateTaskStatus(id, status);
-        return taskService.getTheList();
+        Long targetUserId = (userId != null) ? userId : 1L;
+        return taskService.getTasksForUser(targetUserId);
     }
 
-    //to delete the row or task
     @DeleteMapping("/{id}")
-    public List<Task> deleteTask(@PathVariable Long id){
+    public List<Task> deleteTask(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId){
+
         taskService.deleteId(id);
-        return taskService.getTheList();
+        Long targetUserId = (userId != null) ? userId : 1L;
+        return taskService.getTasksForUser(targetUserId);
     }
 }

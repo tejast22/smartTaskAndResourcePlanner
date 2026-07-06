@@ -119,6 +119,7 @@
         <input type="password" id="auth-password" placeholder="Password">
         <button id="btn-login" class="btn-small btn-blue" style="font-size:16px; padding:10px 20px;">Login</button>
         <button id="btn-register" class="btn-small btn-green" style="font-size:16px; padding:10px 20px;">Register</button>
+        <button id="btn-logout" class="btn-small btn-red" style="font-size:16px; padding:10px 20px;">Logout</button>
     </div>
     <p id="user-status" style="margin-top: 10px; font-weight: bold; color: #555;">Status: Not logged in (Using default guest view)</p>
 </section>
@@ -155,13 +156,18 @@
 </section>
 
 <script>
-    // STEP 2: TRACK AUTHENTICATED STATE FROM LOCALSTORAGE
+    // TRACK AUTHENTICATED STATE FROM LOCALSTORAGE
     let currentUserId = localStorage.getItem('currentUserId') || null;
     let currentUsername = localStorage.getItem('currentUsername') || "Guest";
 
     // 1. The main load function
     function loadTasks(){
-        fetch('/tasks')
+        fetch('/tasks', {
+            method: 'GET',
+            headers: {
+                'X-User-Id': currentUserId || ''
+            }
+        })
             .then(response => response.json())
             .then(tasks => {
                 const tableBody = document.getElementById('task-table-body');
@@ -208,7 +214,8 @@
     form.addEventListener('submit', function(event){
         event.preventDefault();
 
-        const titleValue = document.querySelector('input[name="title"]').value.trim();
+        const titleInput = document.querySelector('input[name="title"]');
+        const titleValue = titleInput.value.trim();
         const priorityValue = parseInt(document.querySelector('input[name="priority"]').value);
 
         if (titleValue === "") {
@@ -229,7 +236,10 @@
 
         fetch('/tasks',{
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
+            headers: {
+                'Content-Type':'application/json',
+                'X-User-Id': currentUserId || 1
+            },
             body: JSON.stringify(newTask)
         })
             .then(async response => {
@@ -243,7 +253,8 @@
                     return;
                 }
                 loadTasks();
-                form.reset();
+                titleInput.value = ''; // Instantly wipes the task name text field clear!
+                document.querySelector('input[name="priority"]').value = '';
             })
             .catch(error => {
                 console.error('Network error:', error);
@@ -251,7 +262,7 @@
             });
     });
 
-    // STEP 3: REGISTER AND LOGIN CLICK CLICK LISTENERS
+    // STEP 3: REGISTER AND LOGIN CLICK LISTENERS
     document.getElementById('btn-register').addEventListener('click', function() {
         const usernameInput = document.getElementById('auth-username').value.trim();
         const passwordInput = document.getElementById('auth-password').value.trim();
@@ -268,9 +279,23 @@
         })
             .then(async response => {
                 const data = await response.json();
-                alert(data.message);
+
+                if (!response.ok) {
+                    // This catches the 409 Conflict or 400 Bad Request and alerts the error message!
+                    alert("Registration Failed: " + data.message);
+                    return;
+                }
+
+                alert(data.message); // "Registration successful"
+
+                // Optional: Clear auth inputs on successful registration
+                document.getElementById('auth-username').value = '';
+                document.getElementById('auth-password').value = '';
             })
-            .catch(err => console.error("Registration error:", err));
+            .catch(err => {
+                console.error("Registration error:", err);
+                alert("Could not connect to the authentication server.");
+            });
     });
 
     document.getElementById('btn-login').addEventListener('click', function() {
@@ -302,26 +327,34 @@
                 currentUsername = data.username;
 
                 updateAuthUI();
+                loadTasks();
                 alert("Welcome, " + currentUsername + "!");
             })
             .catch(err => console.error("Login error:", err));
     });
 
+    // Controls display layout toggling safely
     function updateAuthUI() {
         const statusText = document.getElementById('user-status');
+        const taskForm = document.getElementById('task-form');
         if (currentUserId) {
             statusText.innerText = `Logged in as: ${currentUsername} (User ID: ${currentUserId})`;
             statusText.style.color = "#22c55e";
+            taskForm.style.display = "flex";
         } else {
-            statusText.innerText = "Status: Not logged in (Using default guest view)";
-            statusText.style.color = "#555";
+            statusText.innerText = "Status: Please log in to view or manage your tasks";
+            statusText.style.color = "#ef4444";
+            taskForm.style.display = "none";
         }
     }
 
     // 4. Status Update Function
     function changeStatus(id , newStatus){
         fetch(`/tasks/${id}/status?status=${newStatus}`,{
-            method: 'PUT'
+            method: 'PUT',
+            headers: {
+                'X-User-Id': currentUserId || 1
+            }
         })
             .then(response => {
                 if(response.ok){
@@ -334,7 +367,10 @@
     function deleteTask(id){
         if(confirm("Are you sure you want to delete this task?")){
             fetch(`/tasks/${id}`,{
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'X-User-Id': currentUserId || 1
+                }
             })
                 .then(response => {
                     if(response.ok){
@@ -343,6 +379,20 @@
                 });
         }
     }
+
+    // logout listener
+    document.getElementById('btn-logout').addEventListener('click', function() {
+        localStorage.removeItem('currentUserId');
+        localStorage.removeItem('currentUsername');
+
+        currentUserId = null;
+        currentUsername = "Guest";
+
+        updateAuthUI();
+        loadTasks();
+
+        alert("Logged out successfully!");
+    });
 </script>
 </body>
 </html>

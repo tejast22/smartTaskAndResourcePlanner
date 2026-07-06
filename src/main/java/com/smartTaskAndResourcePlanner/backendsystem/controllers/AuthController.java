@@ -5,6 +5,7 @@ import com.smartTaskAndResourcePlanner.backendsystem.repositories.UserRepository
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder; // 1. IMPORT THE ENCODER
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -14,52 +15,62 @@ import java.util.Optional;
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "*")
 public class AuthController {
+
     @Autowired
     private UserRepository userRepository;
 
-    //registration endpoint
+    @Autowired
+    private PasswordEncoder passwordEncoder; // 2. INJECT THE ENCODER BEAN
+
+    // registration endpoint
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User newUser){
-        //clean inputs
+        // clean inputs
         if(newUser.getUsername() == null || newUser.getUsername().trim().isEmpty() ||
                 newUser.getPassword() == null || newUser.getPassword().trim().isEmpty()){
             return ResponseEntity.badRequest().body(Map.of("message","Username and password cannot be empty"));
         }
 
-        //checking for username is already exist in supabase
+        // checking for username already existing in supabase
         Optional<User> existingUser = userRepository.findByUsername(newUser.getUsername().trim());
         if(existingUser.isPresent()){
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message","Username already taken"));
         }
 
-        //saving the new user
         newUser.setUsername(newUser.getUsername().trim());
+
+        // 3. SECURE HASHING: Encrypt the password before sending it to Supabase
+        String hashedPassword = passwordEncoder.encode(newUser.getPassword());
+        newUser.setPassword(hashedPassword);
+
+        // saving the new user with the encrypted password
         User savedUser = userRepository.save(newUser);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "message", "Registration successful",
-                "userId",savedUser.getId()
+                "userId", savedUser.getId()
         ));
     }
 
-    //login endpoint
+    // login endpoint
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody User loginRequest){
-        //look for user by username
+        // look for user by username
         Optional<User> userOpt = userRepository.findByUsername(loginRequest.getUsername().trim());
 
         if(userOpt.isPresent()){
             User user = userOpt.get();
-            //check for password matching
-            if(user.getPassword().equals(loginRequest.getPassword())){
+
+            // 4. SECURE VERIFICATION: Use .matches() to check the incoming password against the hash
+            if(passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())){
                 return ResponseEntity.ok(Map.of(
                         "message", "Login successful",
-                        "userId",user.getId(),
+                        "userId", user.getId(),
                         "username", user.getUsername()
                 ));
             }
         }
-        //if username do not exist or password do not match return an unauthorized status
+        // if username does not exist or password does not match return an unauthorized status
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid username or password"));
     }
 }
