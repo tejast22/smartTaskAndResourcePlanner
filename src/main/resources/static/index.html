@@ -1,175 +1,308 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <title>Task and Resource Planner</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* --- YOUR BASE CSS --- */
+        /* --- THEME ROOT CONFIGURATION VARIABLES --- */
+        :root {
+            --bg-gradient: radial-gradient(at 0% 0%, rgba(244, 246, 249, 1) 0, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(224, 231, 255, 0.6) 0, transparent 50%),
+            radial-gradient(at 50% 100%, rgba(243, 232, 255, 0.4) 0, transparent 50%),
+            #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --sidebar-bg: #ffffff;
+            --header-bg: rgba(255, 255, 255, 0.85);
+            --th-bg: #f9fafb;
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient: radial-gradient(at 0% 0%, rgba(15, 23, 42, 1) 0, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(30, 27, 75, 0.5) 0, transparent 50%),
+            radial-gradient(at 50% 100%, rgba(58, 28, 115, 0.2) 0, transparent 50%),
+            #0b0f19;
+            --card-bg: #111827;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-color: #374151;
+            --sidebar-bg: #111827;
+            --header-bg: rgba(17, 24, 39, 0.85);
+            --th-bg: #1f2937;
+        }
+
         body {
-            font-family: sans-serif;
-            background-color: #f4f4f9;
-            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+            color: var(--text-main);
+            transition: background 0.3s ease, color 0.3s ease;
         }
+
+        canvas {
+            max-width: 100% !important;
+            max-height: 100% !important;
+        }
+
+        /* --- LAYOUT WRAPPERS --- */
+        header {
+            background: var(--header-bg);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 71px);
+        }
+
+        #sidebar {
+            width: 320px;
+            background-color: var(--sidebar-bg);
+            padding: 25px;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        #workspace {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
         section {
-            background-color: white;
-            padding: 20px;
-            margin-bottom: 30px;
-            border-radius: 8px;
-            box-shadow: 1px 1px 1px #ddd;
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
+
+        /* --- INPUTS & CONTROLS --- */
         form {
             display: flex;
             flex-direction: column;
             gap: 15px;
-            max-width: 400px;
         }
         input, select, button {
-            padding: 10px;
-            border: 1px solid lightblue;
-            border-radius: 4px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s ease;
         }
+        input:focus, select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        /* --- TABLES SYSTEM --- */
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 15px;
         }
         th, td {
-            padding: 12px;
-            border-bottom: 1px solid lightblue;
+            padding: 14px;
+            border-bottom: 1px solid var(--border-color);
             text-align: left;
+            transition: border-color 0.3s ease;
         }
         th {
-            color: black;
+            background-color: var(--th-bg);
+            color: var(--text-muted);
+            font-weight: 600;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* --- AUTH CONTAINER VANILLA CSS --- */
-        #auth-container {
-            background: #ffffff;
-            padding: 25px;
-            margin-bottom: 30px;
-            border-radius: 8px;
-            box-shadow: 1px 1px 1px #ddd;
-        }
-        #auth-inputs {
-            display: flex;
-            gap: 10px;
-            max-width: 600px;
-            margin-bottom: 15px;
-        }
-        #auth-inputs input {
-            flex: 1;
+        /* --- THEME TOGGLE BUTTON --- */
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
             padding: 8px 12px;
-            border: 1px solid lightblue;
-            border-radius: 4px;
-            outline: none;
-        }
-
-        /* --- OUR NEW CUSTOM BUTTON CSS --- */
-        .action-buttons {
+            font-size: 16px;
             display: flex;
             align-items: center;
-            justify-content: flex-end;
-            gap: 8px;
+            gap: 5px;
+            border-radius: 20px;
         }
-        .btn-small {
-            padding: 6px 12px;
-            border-radius: 4px;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.2s ease-in-out;
+        .theme-toggle:hover {
+            background-color: var(--th-bg);
         }
+
+        /* --- LAYOUT CONTROL PANEL --- */
+        #auth-inputs { display: flex; gap: 10px; align-items: center; }
+        .action-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+
+        .btn-small { padding: 6px 12px; border-radius: 4px; color: white; border: none; cursor: pointer; font-size: 13px; font-weight: 500; }
         .btn-blue { background-color: #3b82f6; }
-        .btn-blue:hover { background-color: #2563eb; }
-
         .btn-gray { background-color: #6b7280; }
-        .btn-gray:hover { background-color: #4b5563; }
-
         .btn-green { background-color: #22c55e; }
-        .btn-green:hover { background-color: #16a34a; }
-
         .btn-yellow { background-color: #eab308; }
-        .btn-yellow:hover { background-color: #ca8a04; }
-
         .btn-red { background-color: #ef4444; }
-        .btn-red:hover { background-color: #dc2626; }
+        .btn-main { background-color: #2563eb; color: white; border: none; cursor: pointer; font-weight: 600; }
+        .btn-main:hover { background-color: #1d4ed8; }
 
-        .status-done {
-            color: #16a34a;
-            font-style: italic;
-            font-weight: bold;
-            margin-right: 8px;
-        }
-
-        /* Specific style for the Sort button */
-        .btn-main {
-            background-color: blue;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
+        .status-done { color: #16a34a; font-weight: bold; margin-right: 8px; }
     </style>
 </head>
 <body>
 
-<section id="auth-container">
-    <h2 id="auth-title">User Account Control</h2>
-    <div id="auth-inputs">
-        <input type="text" id="auth-username" placeholder="Username">
-        <input type="password" id="auth-password" placeholder="Password">
-        <button id="btn-login" class="btn-small btn-blue" style="font-size:16px; padding:10px 20px;">Login</button>
-        <button id="btn-register" class="btn-small btn-green" style="font-size:16px; padding:10px 20px;">Register</button>
-        <button id="btn-logout" class="btn-small btn-red" style="font-size:16px; padding:10px 20px;">Logout</button>
+<header>
+    <div>
+        <h2 style="margin:0; font-size: 20px; color: #2563eb; font-weight: 700;">Smart Planner Workspace</h2>
+        <p id="user-status" style="margin: 5px 0 0; font-size: 13px; font-weight: bold; color: #ef4444;">Please log in to manage tasks.</p>
     </div>
-    <p id="user-status" style="margin-top: 10px; font-weight: bold; color: #555;">Status: Not logged in (Using default guest view)</p>
-</section>
 
-<section>
-    <h2>Create a Task</h2>
-    <form id="task-form" action="/tasks" method="POST">
-        <input type="text" placeholder="Task Name" name="title">
-        <select name="status">
-            <option>Pending</option>
-            <option>Completed</option>
-            <option>Working</option>
-        </select>
-        <input type="number" placeholder="Priority (1-10)" name="priority" min="1" max="10" required>
-        <button class="btn-main" type="button" onclick="document.getElementById('task-form').dispatchEvent(new Event('submit'))">Add Task</button>
-    </form>
-</section>
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <button id="theme-btn" class="theme-toggle">🌙 Dark Mode</button>
 
-<section>
-    <h2>Task Board</h2>
-    <table>
-        <thead>
-        <tr>
-            <th>ID</th>
-            <th>Title</th>
-            <th>Status</th>
-            <th>Priority</th>
-            <th style="text-align:right">Actions</th>
-        </tr>
-        </thead>
-        <tbody id="task-table-body">
-        </tbody>
-    </table>
-</section>
+        <div id="auth-container">
+            <div id="auth-inputs">
+                <input type="text" id="auth-username" placeholder="Username">
+                <div style="position: relative; display: flex; align-items: center;">
+                    <input type="password" id="auth-password" placeholder="Password" style="padding-right: 40px;">
+                    <button id="toggle-password-btn" type="button" style="position: absolute; right: 5px; background: transparent; border: none; padding: 5px; cursor: pointer; font-size: 14px; color: var(--text-muted);">👁️</button>
+                </div>
+                <button id="btn-login" class="btn-small btn-blue">Login</button>
+                <button id="btn-register" class="btn-small btn-green">Register</button>
+            </div>
+            <button id="btn-logout" class="btn-small btn-red" style="display: none;">Logout</button>
+        </div>
+    </div>
+</header>
+
+<div class="main-container">
+    <div id="sidebar">
+        <h3 style="margin-top:0; font-weight: 600;">Create a Task</h3>
+        <form id="task-form" action="/tasks" method="POST" style="display: none;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted);">TASK TITLE</label>
+            <input type="text" placeholder="e.g. Finish Core Java API" name="title">
+
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted);">INITIAL STATUS</label>
+            <select name="status">
+                <option>Pending</option>
+                <option>Working</option>
+                <option>Completed</option>
+            </select>
+
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted);">PRIORITY (1-10)</label>
+            <input type="number" placeholder="Priority (1-10)" name="priority" min="1" max="10" required>
+
+            <button class="btn-main" type="button" onclick="document.getElementById('task-form').dispatchEvent(new Event('submit'))">Add Task</button>
+        </form>
+        <p id="sidebar-guest-msg" style="color: var(--text-muted); font-size: 14px;">Please login to unlock task creation workspace.</p>
+    </div>
+
+    <div id="workspace">
+
+        <div id="analytics-dashboard" style="display: none;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
+                <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #3b82f6; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+                    <h4 style="margin: 0; color: var(--text-muted); font-size: 11px; text-transform: uppercase; font-weight: 700;">Total Active Tasks</h4>
+                    <p id="stat-total-tasks" style="margin: 10px 0 0; font-size: 28px; font-weight: bold; color: #3b82f6;">0</p>
+                </div>
+                <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #eab308; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+                    <h4 style="margin: 0; color: var(--text-muted); font-size: 11px; text-transform: uppercase; font-weight: 700;">Pending / In Progress</h4>
+                    <p id="stat-pending-tasks" style="margin: 10px 0 0; font-size: 28px; font-weight: bold; color: #eab308;">0</p>
+                </div>
+                <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #22c55e; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+                    <h4 style="margin: 0; color: var(--text-muted); font-size: 11px; text-transform: uppercase; font-weight: 700;">Completed This Month</h4>
+                    <p id="stat-completed-month" style="margin: 10px 0 0; font-size: 28px; font-weight: bold; color: #22c55e;">0</p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                <div style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: 260px; display: flex; flex-direction: column; align-items: center;">
+                    <h3 style="margin-top: 0; font-size: 14px; color: var(--text-main); font-weight: 600;">Work Breakdown (Current Status)</h3>
+                    <div style="width: 100%; max-width: 180px; height: 100%;"><canvas id="statusPieChart"></canvas></div>
+                </div>
+                <div style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: 260px; display: flex; flex-direction: column; align-items: center;">
+                    <h3 style="margin-top: 0; font-size: 14px; color: var(--text-main); font-weight: 600;">Performance Breakdown (MoM)</h3>
+                    <div style="width: 100%; max-width: 280px; height: 100%;"><canvas id="monthlyBarChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <section>
+            <h3 style="margin-top: 0; font-weight: 600;">Task Monitor Board</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th style="text-align:right">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="task-table-body">
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
 
 <script>
-    // TRACK AUTHENTICATED STATE FROM LOCALSTORAGE
     let currentUserId = localStorage.getItem('currentUserId') || null;
     let currentUsername = localStorage.getItem('currentUsername') || "Guest";
 
-    // 1. The main load function
+    // Chart Handles
+    let pieChartInstance = null;
+    let barChartInstance = null;
+
+    // --- MANAGE LIGHT / DARK THEME TOGGLES ---
+    const themeBtn = document.getElementById('theme-btn');
+    let savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeButtonUI(savedTheme);
+
+    themeBtn.addEventListener('click', () => {
+        let currentTheme = document.documentElement.getAttribute('data-theme');
+        let newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeButtonUI(newTheme);
+
+        // Force refresh charts to recalculate label color values
+        if(window.lastLoadedTasks) {
+            updateDashboardMetrics(window.lastLoadedTasks);
+        }
+    });
+
+    function updateThemeButtonUI(theme) {
+        themeBtn.innerText = theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+    }
+
     function loadTasks(){
         fetch('/tasks', {
             method: 'GET',
-            headers: {
-                'X-User-Id': currentUserId || ''
-            }
+            headers: { 'X-User-Id': currentUserId || '' }
         })
             .then(response => response.json())
             .then(tasks => {
+                window.lastLoadedTasks = tasks; // cache to memory for theme switches
                 const tableBody = document.getElementById('task-table-body');
                 tableBody.innerHTML = '';
 
@@ -190,43 +323,47 @@
 
                     actionButtonHtml += `<button onclick="deleteTask(${task.id})" class="btn-small btn-red">Delete</button></div>`;
 
+                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                    const pendingBg = isDark ? 'background:#1e293b; color:#9ca3af;' : 'background:#f3f4f6; color:#374151;';
+                    const workingBg = isDark ? 'background:#713f12; color:#fef08a;' : 'background:#fef9c3; color:#a16207;';
+                    const completedBg = isDark ? 'background:#064e3b; color:#4ade80;' : 'background:#dcfce7; color:#15803d;';
+
+                    let statusStyle = pendingBg;
+                    if(task.status.toLowerCase() === 'working') statusStyle = workingBg;
+                    if(task.status.toLowerCase() === 'completed') statusStyle = completedBg;
+
                     const row = `<tr>
                         <td>${task.id}</td>
                         <td>${task.title}</td>
-                        <td>${task.status}</td>
-                        <td>${task.priority}</td>
+                        <td><span style="padding: 4px 10px; border-radius: 20px; font-size:12px; font-weight:600; ${statusStyle}">${task.status}</span></td>
+                        <td><strong>${task.priority}</strong>/10</td>
                         <td>${actionButtonHtml}</td>
                     </tr>`;
                     tableBody.innerHTML += row;
                 });
+
+                updateDashboardMetrics(tasks);
             })
             .catch(error => console.error('Error fetching tasks', error));
     }
 
-    // Run custom interface setups along with data fetching on page initialization
     window.onload = function() {
         loadTasks();
         updateAuthUI();
     };
 
-    // 2. The Form Submit Function
+    // FORM SUBMISSION PIPELINE
     const form = document.getElementById('task-form');
     form.addEventListener('submit', function(event){
         event.preventDefault();
 
         const titleInput = document.querySelector('input[name="title"]');
         const titleValue = titleInput.value.trim();
-        const priorityValue = parseInt(document.querySelector('input[name="priority"]').value);
+        const priorityInput = document.querySelector('input[name="priority"]');
+        const priorityValue = parseInt(priorityInput.value);
 
-        if (titleValue === "") {
-            alert("Task name is required!");
-            return;
-        }
-
-        if(priorityValue < 1 || priorityValue > 10 || isNaN(priorityValue)){
-            alert("Priority must be a number between 1 to 10");
-            return;
-        }
+        if (titleValue === "") { alert("Task name is required!"); return; }
+        if (priorityValue < 1 || priorityValue > 10 || isNaN(priorityValue)){ alert("Priority must be between 1 to 10"); return; }
 
         const newTask = {
             title: titleValue,
@@ -243,34 +380,19 @@
             body: JSON.stringify(newTask)
         })
             .then(async response => {
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    if(errorData.title) {
-                        alert(errorData.title);
-                    } else {
-                        alert("Something went wrong with validation.");
-                    }
-                    return;
-                }
+                if (!response.ok) { return; }
                 loadTasks();
-                titleInput.value = ''; // Instantly wipes the task name text field clear!
-                document.querySelector('input[name="priority"]').value = '';
+                titleInput.value = '';
+                priorityInput.value = '';
             })
-            .catch(error => {
-                console.error('Network error:', error);
-                alert("Could not connect to the server.");
-            });
+            .catch(error => console.error('Network error:', error));
     });
 
-    // STEP 3: REGISTER AND LOGIN CLICK LISTENERS
+    // AUTH ACTION CONTROLLERS
     document.getElementById('btn-register').addEventListener('click', function() {
         const usernameInput = document.getElementById('auth-username').value.trim();
         const passwordInput = document.getElementById('auth-password').value.trim();
-
-        if (!usernameInput || !passwordInput) {
-            alert("Please enter both username and password!");
-            return;
-        }
+        if (!usernameInput || !passwordInput) { alert("Enter credentials!"); return; }
 
         fetch('/api/auth/register', {
             method: 'POST',
@@ -279,33 +401,18 @@
         })
             .then(async response => {
                 const data = await response.json();
-
-                if (!response.ok) {
-                    // This catches the 409 Conflict or 400 Bad Request and alerts the error message!
-                    alert("Registration Failed: " + data.message);
-                    return;
+                alert(data.message);
+                if(response.ok) {
+                    document.getElementById('auth-username').value = '';
+                    document.getElementById('auth-password').value = '';
                 }
-
-                alert(data.message); // "Registration successful"
-
-                // Optional: Clear auth inputs on successful registration
-                document.getElementById('auth-username').value = '';
-                document.getElementById('auth-password').value = '';
-            })
-            .catch(err => {
-                console.error("Registration error:", err);
-                alert("Could not connect to the authentication server.");
             });
     });
 
     document.getElementById('btn-login').addEventListener('click', function() {
         const usernameInput = document.getElementById('auth-username').value.trim();
         const passwordInput = document.getElementById('auth-password').value.trim();
-
-        if (!usernameInput || !passwordInput) {
-            alert("Please enter both username and password!");
-            return;
-        }
+        if (!usernameInput || !passwordInput) { alert("Enter credentials!"); return; }
 
         fetch('/api/auth/login', {
             method: 'POST',
@@ -313,85 +420,188 @@
             body: JSON.stringify({ username: usernameInput, password: passwordInput })
         })
             .then(async response => {
-                if (!response.ok) {
-                    const data = await response.json();
-                    alert(data.message);
-                    return;
-                }
-
+                if (!response.ok) { const data = await response.json(); alert(data.message); return; }
                 const data = await response.json();
                 localStorage.setItem('currentUserId', data.userId);
                 localStorage.setItem('currentUsername', data.username);
-
                 currentUserId = data.userId;
                 currentUsername = data.username;
-
                 updateAuthUI();
                 loadTasks();
                 alert("Welcome, " + currentUsername + "!");
-            })
-            .catch(err => console.error("Login error:", err));
+            });
     });
 
-    // Controls display layout toggling safely
     function updateAuthUI() {
         const statusText = document.getElementById('user-status');
         const taskForm = document.getElementById('task-form');
+        const sidebarMsg = document.getElementById('sidebar-guest-msg');
+        const dashboard = document.getElementById('analytics-dashboard');
+        const authInputs = document.getElementById('auth-inputs');
+        const logoutBtn = document.getElementById('btn-logout');
+
         if (currentUserId) {
-            statusText.innerText = `Logged in as: ${currentUsername} (User ID: ${currentUserId})`;
+            statusText.innerText = `Logged in as: ${currentUsername}`;
             statusText.style.color = "#22c55e";
             taskForm.style.display = "flex";
+            sidebarMsg.style.display = "none";
+            dashboard.style.display = "block";
+            authInputs.style.display = "none";
+            logoutBtn.style.display = "block";
         } else {
-            statusText.innerText = "Status: Please log in to view or manage your tasks";
+            statusText.innerText = "Status: Please log in to manage tasks.";
             statusText.style.color = "#ef4444";
             taskForm.style.display = "none";
+            sidebarMsg.style.display = "block";
+            dashboard.style.display = "none";
+            authInputs.style.display = "flex";
+            logoutBtn.style.display = "none";
         }
     }
 
-    // 4. Status Update Function
+    // --- CHART VISUALIZATION RENDERING ENGINE WITH TIMELINE LOGIC ---
+    function updateDashboardMetrics(tasks) {
+        if (!currentUserId) return;
+
+        // A. Calculate Card Values
+        let total = tasks.length;
+        let pendingOrWorking = tasks.filter(t => t.status.toLowerCase() === 'pending' || t.status.toLowerCase() === 'working').length;
+
+        // B. Calculate Dynamic Month Filtering
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth(); // 0 = Jan, 11 = Dec
+
+        let completedThisMonthCount = 0;
+        let completedLastMonthCount = 0;
+
+        tasks.forEach(t => {
+            if (t.status.toLowerCase() === 'completed' && t.completedAt) {
+                const compDate = new Date(t.completedAt);
+
+                if (compDate.getFullYear() === currentYear && compDate.getMonth() === currentMonth) {
+                    completedThisMonthCount++;
+                } else if (
+                    (currentMonth === 0 && compDate.getFullYear() === currentYear - 1 && compDate.getMonth() === 11) ||
+                    (compDate.getFullYear() === currentYear && compDate.getMonth() === currentMonth - 1)
+                ) {
+                    completedLastMonthCount++;
+                }
+            }
+        });
+
+        // Push counts to UI counters
+        document.getElementById('stat-total-tasks').innerText = total;
+        document.getElementById('stat-pending-tasks').innerText = pendingOrWorking;
+        document.getElementById('stat-completed-month').innerText = completedThisMonthCount;
+
+        let pendingCount = tasks.filter(t => t.status.toLowerCase() === 'pending').length;
+        let workingCount = tasks.filter(t => t.status.toLowerCase() === 'working').length;
+        let totalCompletedCount = tasks.filter(t => t.status.toLowerCase() === 'completed').length;
+
+        // Clear canvas references
+        if (pieChartInstance) pieChartInstance.destroy();
+        if (barChartInstance) barChartInstance.destroy();
+
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const labelColor = isDark ? '#9ca3af' : '#4b5563';
+        const gridColor = isDark ? '#374151' : '#e5e7eb';
+
+        // Render Work Breakdown (Current Status Distribution)
+        const ctxPie = document.getElementById('statusPieChart').getContext('2d');
+        pieChartInstance = new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: ['Pending', 'Working', 'Completed'],
+                datasets: [{
+                    data: [pendingCount, workingCount, totalCompletedCount],
+                    backgroundColor: ['#6b7280', '#eab308', '#22c55e'],
+                    borderColor: isDark ? '#111827' : '#ffffff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: labelColor } }
+                }
+            }
+        });
+
+        // Render Month-over-Month Comparisons
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const lastMonthLabel = monthNames[currentMonth === 0 ? 11 : currentMonth - 1];
+        const thisMonthLabel = monthNames[currentMonth];
+
+        const ctxBar = document.getElementById('monthlyBarChart').getContext('2d');
+        barChartInstance = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: [lastMonthLabel + ' (Last Month)', thisMonthLabel + ' (This Month)'],
+                datasets: [{
+                    label: 'Tasks Completed',
+                    data: [completedLastMonthCount, completedThisMonthCount],
+                    backgroundColor: ['#6b7280', '#22c55e'],
+                    borderRadius: 6,
+                    maxBarThickness: 45
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, color: labelColor },
+                        grid: { color: gridColor }
+                    },
+                    x: {
+                        ticks: { color: labelColor },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
     function changeStatus(id , newStatus){
         fetch(`/tasks/${id}/status?status=${newStatus}`,{
             method: 'PUT',
-            headers: {
-                'X-User-Id': currentUserId || 1
-            }
-        })
-            .then(response => {
-                if(response.ok){
-                    loadTasks();
-                }
-            });
+            headers: { 'X-User-Id': currentUserId || 1 }
+        }).then(response => { if(response.ok) loadTasks(); });
     }
 
-    // 5. Delete Function
     function deleteTask(id){
         if(confirm("Are you sure you want to delete this task?")){
             fetch(`/tasks/${id}`,{
                 method: 'DELETE',
-                headers: {
-                    'X-User-Id': currentUserId || 1
-                }
-            })
-                .then(response => {
-                    if(response.ok){
-                        loadTasks();
-                    }
-                });
+                headers: { 'X-User-Id': currentUserId || 1 }
+            }).then(response => { if(response.ok) loadTasks(); });
         }
     }
 
-    // logout listener
     document.getElementById('btn-logout').addEventListener('click', function() {
         localStorage.removeItem('currentUserId');
         localStorage.removeItem('currentUsername');
-
         currentUserId = null;
         currentUsername = "Guest";
-
         updateAuthUI();
         loadTasks();
-
         alert("Logged out successfully!");
+    });
+
+    // --- PASSWORD VISIBILITY SWITCH FUNCTION ENGINE ---
+    document.getElementById('toggle-password-btn').addEventListener('click', function() {
+        const passwordField = document.getElementById('auth-password');
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            this.innerText = '🙈';
+        } else {
+            passwordField.type = 'password';
+            this.innerText = '👁️';
+        }
     });
 </script>
 </body>

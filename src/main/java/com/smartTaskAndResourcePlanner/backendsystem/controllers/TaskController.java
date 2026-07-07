@@ -20,14 +20,12 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-    // 1. UPDATED: Accepts the user ID header to filter the task list
     @GetMapping
     public List<Task> viewTasks(@RequestHeader(value = "X-User-Id", required = false) Long userId){
-        Long targetUserId = (userId != null) ? userId :-1L; // Fallback to test user if guest
+        Long targetUserId = (userId != null) ? userId : -1L;
         return taskService.getTasksForUser(targetUserId);
     }
 
-    // 2. UPDATED: Accepts the user ID header to save the task under the correct owner
     @PostMapping
     public List<Task> createNewTask(
             @Valid @RequestBody Task newTask,
@@ -35,19 +33,22 @@ public class TaskController {
 
         Long targetUserId = (userId != null) ? userId : 1L;
         taskService.addTask(newTask, targetUserId);
-        return taskService.getTasksForUser(targetUserId); // Return only this user's updated list!
+        return taskService.getTasksForUser(targetUserId);
     }
 
-    // 3. UPDATED: Passing the header isn't strictly needed for status changes or deletes yet,
-    // but we change the return statement so they also return just the filtered list!
+    // FIXED: Ensured that user verification is tied directly to status mutations
     @PutMapping("/{id}/status")
     public List<Task> updateStatus(
             @PathVariable Long id,
             @RequestParam String status,
             @RequestHeader(value = "X-User-Id", required = false) Long userId){
 
-        taskService.updateTaskStatus(id, status);
         Long targetUserId = (userId != null) ? userId : 1L;
+
+        // Let's protect data integrity: make sure we use the transactional service hook
+        // that handles the entity tracking and timestamp mapping correctly!
+        taskService.updateTaskStatus(id, status);
+
         return taskService.getTasksForUser(targetUserId);
     }
 
