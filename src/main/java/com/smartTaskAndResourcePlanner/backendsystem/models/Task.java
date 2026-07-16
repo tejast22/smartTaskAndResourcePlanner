@@ -33,6 +33,9 @@ public class Task {
     private LocalDateTime createdAt;
     private LocalDateTime completedAt;
 
+    private java.time.LocalDateTime dueDate;
+    private boolean reminderSent = false;
+
     public Task() {}
 
     public Task(String title, String status, int priority){
@@ -107,5 +110,21 @@ public class Task {
 
     public void setCompletedAt(LocalDateTime completedAt){
         this.completedAt = completedAt;
+    }
+
+    public java.time.LocalDateTime getDueDate(){
+        return dueDate;
+    }
+
+    public void setDueDate(java.time.LocalDateTime dueDate){
+        this.dueDate = dueDate;
+    }
+
+    public boolean isReminderSent(){
+        return reminderSent;
+    }
+
+    public void setReminderSent(boolean reminderSent){
+        this.reminderSent = reminderSent;
     }
 }

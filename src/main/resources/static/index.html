@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <title>Task and Resource Planner</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
+
     <style>
         /* --- THEME ROOT CONFIGURATION VARIABLES --- */
         :root {
@@ -210,6 +213,9 @@
             <label style="font-size: 11px; font-weight: 700; color: var(--text-muted);">PRIORITY (1-10)</label>
             <input type="number" placeholder="Priority (1-10)" name="priority" min="1" max="10" required>
 
+            <label style="font-size:11px; font-weight: 700; color: var(--text-muted);">REMINDER DATE AND TIME</label>
+            <input type="datetime-local" name="dueDate">
+
             <button class="btn-main" type="button" onclick="document.getElementById('task-form').dispatchEvent(new Event('submit'))">Add Task</button>
         </form>
         <p id="sidebar-guest-msg" style="color: var(--text-muted); font-size: 14px;">Please login to unlock task creation workspace.</p>
@@ -245,8 +251,8 @@
             </div>
         </div>
 
-        <section>
-            <h3 style="margin-top: 0; font-weight: 600;">Task Monitor Board</h3>
+        <section id="active-tasks-section">
+            <h3 style="margin-top: 0; font-weight: 600; color: #3b82f6;">Active Tasks Pipeline (Pending & Working)</h3>
             <table>
                 <thead>
                 <tr>
@@ -254,10 +260,28 @@
                     <th>Title</th>
                     <th>Status</th>
                     <th>Priority</th>
+                    <th>Due Date</th>
                     <th style="text-align:right">Actions</th>
                 </tr>
                 </thead>
-                <tbody id="task-table-body">
+                <tbody id="active-task-table-body">
+                </tbody>
+            </table>
+        </section>
+
+        <section id="completed-tasks-section" style="margin-top: 20px;">
+            <h3 style="margin-top: 0; font-weight: 600; color: #22c55e;">✔️ Completed Archive</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Completed At</th> <th style="text-align:right">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="completed-task-table-body">
                 </tbody>
             </table>
         </section>
@@ -302,9 +326,15 @@
         })
             .then(response => response.json())
             .then(tasks => {
-                window.lastLoadedTasks = tasks; // cache to memory for theme switches
-                const tableBody = document.getElementById('task-table-body');
-                tableBody.innerHTML = '';
+                window.lastLoadedTasks = tasks; // Cache to memory
+
+                // Grab handles for both separate table body structures
+                const activeBody = document.getElementById('active-task-table-body');
+                const completedBody = document.getElementById('completed-task-table-body');
+
+                // Clear out both containers before rendering
+                activeBody.innerHTML = '';
+                completedBody.innerHTML = '';
 
                 tasks.forEach(task => {
                     let actionButtonHtml = `<div class="action-buttons">`;
@@ -313,12 +343,12 @@
                         actionButtonHtml += `<button onclick="changeStatus('${task.id}', 'working')" class="btn-small btn-blue">Start Working</button>`;
                     } else if(task.status.toLowerCase() === 'working'){
                         actionButtonHtml += `
-                            <button onclick="changeStatus('${task.id}', 'pending')" class="btn-small btn-gray">⏪ Pending</button>
-                            <button onclick="changeStatus('${task.id}', 'completed')" class="btn-small btn-green">Mark Completed</button>`;
+                        <button onclick="changeStatus('${task.id}', 'pending')" class="btn-small btn-gray">⏪ Pending</button>
+                        <button onclick="changeStatus('${task.id}', 'completed')" class="btn-small btn-green">Mark Completed</button>`;
                     } else if(task.status.toLowerCase() === 'completed'){
                         actionButtonHtml += `
-                            <span class="status-done">✔️ Done</span>
-                            <button onclick="changeStatus('${task.id}', 'working')" class="btn-small btn-yellow">⏪ Re-open</button>`;
+                        <span class="status-done">✔️ Done</span>
+                        <button onclick="changeStatus('${task.id}', 'working')" class="btn-small btn-yellow">⏪ Re-open</button>`;
                     }
 
                     actionButtonHtml += `<button onclick="deleteTask(${task.id})" class="btn-small btn-red">Delete</button></div>`;
@@ -332,14 +362,44 @@
                     if(task.status.toLowerCase() === 'working') statusStyle = workingBg;
                     if(task.status.toLowerCase() === 'completed') statusStyle = completedBg;
 
+                    // --- CHANGED AREA: DYNAMIC & EDITABLE TIME INPUT ENGINE ---
+                    let timeColumnData = "";
+                    let isCompletedTask = task.status.toLowerCase() === 'completed';
+
+                    if (isCompletedTask) {
+                        // If the task is done, display completion timestamp as plain text
+                        if (task.completedAt) {
+                            const compDate = new Date(task.completedAt);
+                            timeColumnData = "🎉 " + compDate.toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                        } else {
+                            timeColumnData = "✔️ Done";
+                        }
+                    } else {
+                        // For active tasks (Pending/Working), render a clickable HTML5 calendar input box
+                        const rawDateStr = task.dueDate ? task.dueDate.substring(0, 16) : "";
+                        timeColumnData = `
+                        <input type="datetime-local"
+                            value="${rawDateStr}"
+                            onchange="updateDueDate('${task.id}', this.value)"
+                            style="border: 1px dashed var(--border-color); background: transparent; color: var(--text-main); padding: 4px; border-radius: 4px; font-family: inherit; cursor: pointer;">
+                    `;
+                    }
+
                     const row = `<tr>
-                        <td>${task.id}</td>
-                        <td>${task.title}</td>
-                        <td><span style="padding: 4px 10px; border-radius: 20px; font-size:12px; font-weight:600; ${statusStyle}">${task.status}</span></td>
-                        <td><strong>${task.priority}</strong>/10</td>
-                        <td>${actionButtonHtml}</td>
-                    </tr>`;
-                    tableBody.innerHTML += row;
+                    <td>${task.id}</td>
+                    <td>${task.title}</td>
+                    <td><span style="padding: 4px 10px; border-radius: 20px; font-size:12px; font-weight:600; ${statusStyle}">${task.status}</span></td>
+                    <td><strong>${task.priority}</strong>/10</td>
+                    <td style="font-size: 13px; font-weight: 500; color: var(--text-muted);">${timeColumnData}</td>
+                    <td>${actionButtonHtml}</td>
+                </tr>`;
+
+                    // DYNAMIC ROUTING SYSTEM: Push row to its designated workspace area!
+                    if (isCompletedTask) {
+                        completedBody.innerHTML += row;
+                    } else {
+                        activeBody.innerHTML += row;
+                    }
                 });
 
                 updateDashboardMetrics(tasks);
@@ -362,13 +422,18 @@
         const priorityInput = document.querySelector('input[name="priority"]');
         const priorityValue = parseInt(priorityInput.value);
 
+        //read the chosen time from calendar input box
+        const dueDateInput = document.querySelector('input[name="dueDate"]');
+        const dueDateValue = dueDateInput.value;
+
         if (titleValue === "") { alert("Task name is required!"); return; }
         if (priorityValue < 1 || priorityValue > 10 || isNaN(priorityValue)){ alert("Priority must be between 1 to 10"); return; }
 
         const newTask = {
             title: titleValue,
             status: document.querySelector('select[name="status"]').value,
-            priority: priorityValue
+            priority: priorityValue,
+            dueDate:dueDateValue ? dueDateValue : null
         };
 
         fetch('/tasks',{
@@ -384,6 +449,7 @@
                 loadTasks();
                 titleInput.value = '';
                 priorityInput.value = '';
+                dueDateInput.value = '';
             })
             .catch(error => console.error('Network error:', error));
     });
@@ -603,6 +669,139 @@
             this.innerText = '👁️';
         }
     });
+
+    // ==========================================
+    // PHASE 3: FIREBASE BROWSER ENGINE CORES
+    // ==========================================
+
+    // ⚠️ REPLACE THESE PLACEHOLDER VALUES WITH YOUR 6 ACTUAL KEYS FROM FIREBASE CONSOLE:
+    const firebaseConfig = {
+        apiKey: "AIzaSyA5uop4pkbD10GD2S-KnyPZigHWyLQmzhI",
+        authDomain: "smarttaskplanner-769f3.firebaseapp.com",
+        projectId: "smarttaskplanner-769f3",
+        storageBucket: "smarttaskplanner-769f3.firebasestorage.app",
+        messagingSenderId: "288776496731",
+        appId: "1:288776496731:web:f1c448834fbac70537417e"
+    };
+
+    // Initialize Firebase cleanly using the compatibility mode wrapper
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const messaging = firebase.messaging();
+
+    // Catch notifications in the foreground (when you are looking at the website)
+    messaging.onMessage((payload) => {
+        console.log('🔔 Foreground message received: ', payload);
+
+        // Force a native browser notification to pop up anyway!
+        new Notification(payload.notification.title, {
+            body: payload.notification.body,
+            icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png'
+        });
+    });
+
+    // SENDS THE UPDATED DATE FROM THE TABLE STRAIGHT TO THE JAVA CONTROLLER
+    function updateDueDate(taskId, newDateValue) {
+        if (!newDateValue) return;
+
+        console.log("📅 Rescheduling task ID: " + taskId + " to " + newDateValue);
+
+        fetch(`/tasks/${taskId}/due-date?date=${newDateValue}`, {
+            method: 'PUT',
+            headers: {
+                'X-User-Id': currentUserId || 1
+            }
+        })
+            .then(async response => {
+                if (response.ok) {
+                    console.log("💾 SUCCESS: Database updated.");
+                    loadTasks(); // Reloads layout to perfectly re-sort everything
+                } else {
+                    alert("Failed to update the time status.");
+                }
+            })
+            .catch(error => console.error("Error updating due date:", error));
+    }
+
+    // RUNS AUTOMATICALLY ON PORTAL INITIALIZATION
+    document.addEventListener("DOMContentLoaded", () => {
+        // Wait until the user has logged in and we have a valid user ID loaded
+        setTimeout(() => {
+            if (typeof currentUserId !== 'undefined' && currentUserId) {
+                setupPushNotifications();
+            }
+        }, 1500);
+    });
+
+    // SINGULAR, UNIFIED SYSTEM TO REGISTER BACKGROUND WORKER AND FETCH DEVICE TOKEN
+    function setupPushNotifications() {
+        if (!currentUserId) return;
+
+        // Check if the browser supports standard push notifications
+        if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+            console.warn('Push notifications are not supported by this browser.');
+            return;
+        }
+
+        console.log("🔔 SYSTEM SECURITY: Checking browser push notification permissions...");
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                console.log('🎉 PERMISSION GRANTED: Notification access allowed!');
+
+                // Register our background service worker script
+                navigator.serviceWorker.register('/firebase-messaging-sw.js')
+                    .then(registration => {
+                        console.log('🤖 Service Worker registered successfully scope:', registration.scope);
+
+                        // Grab the device's signature address token using the registered worker channel
+                        // ⚠️ REPLACE 'YOUR_PUBLIC_VAPID_KEY' with the key from your Firebase Console
+                        messaging.getToken({
+                            serviceWorkerRegistration: registration,
+                            vapidKey: 'BKfByGWsP8J7jKjy6BF046pruU4nV_JKZ3KUb4pMW_15_i5vUnmnrGcsjDNOaBXd_3DBGotqrGOELxrp3IoUssY'
+                        })
+                            .then(currentToken => {
+                                if (currentToken) {
+                                    console.log("🔑 Generated Device Token successfully!");
+                                    sendTokenToBackend(currentToken);
+                                } else {
+                                    console.warn('⚠️ TOKEN NOTICE: No registration token available.');
+                                }
+                            })
+                            .catch(err => console.error('❌ CONFIGURATION ERROR: An error occurred while retrieving token: ', err));
+                    });
+            } else {
+                console.warn('❌ PERMISSION DENIED: User blocked notification alerts.');
+            }
+        });
+    }
+
+    // TRANSMITS THE UNIQUE DEVICE TOKEN DIRECTLY TO THE AUTH CONTROLLER COLLECTION
+    function sendTokenToBackend(token) {
+        const userId = currentUserId || 1;
+
+        // FIXED: Added the missing /api/auth prefix to match your backend controller routing exactly!
+        fetch(`/api/auth/update-fcm-token?userId=${userId}&token=${token}`, {
+            method: 'PUT'
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log("💾 MULTI-DEVICE SUCCESS: Current device verified and mapped into Supabase.");
+                } else {
+                    console.error("❌ BACKEND REJECTION: Failed to map token to database profile.");
+                }
+            })
+            .catch(err => console.error("Error updating tracking configuration token:", err));
+    }
+
+    // Hook this initialization routine right into your native page login action sequence
+    const nativeAuthUI = updateAuthUI;
+    updateAuthUI = function() {
+        nativeAuthUI();
+        if (currentUserId) {
+            setupPushNotifications();
+        }
+    };
 </script>
 </body>
 </html>

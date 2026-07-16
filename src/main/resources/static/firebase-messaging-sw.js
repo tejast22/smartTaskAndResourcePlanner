@@ -1,0 +1,63 @@
+// Load the Firebase compatibility scripts into the background thread safely
+importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
+
+// DOUBLE CHECK: Make sure you put your real keys inside these quotes!
+const firebaseConfig = {
+    apiKey: "AIzaSyA5uop4pkbD10GD2S-KnyPZigHWyLQmzhI",
+    authDomain: "smarttaskplanner-769f3.firebaseapp.com",
+    projectId: "smarttaskplanner-769f3",
+    storageBucket: "smarttaskplanner-769f3.firebasestorage.app",
+    messagingSenderId: "288776496731",
+    appId: "1:288776496731:web:f1c448834fbac70537417e"
+};
+
+// Initialize Firebase background instance cleanly using compatibility format
+firebase.initializeApp(firebaseConfig);
+
+try {
+    const messaging = firebase.messaging();
+
+    // Catch incoming messages when your website dashboard tab is closed
+    messaging.onBackgroundMessage((payload) => {
+        console.log('✨ Background message intercepted: ', payload);
+
+        const notificationTitle = payload.notification.title || "⏰ Task Reminder";
+        const notificationOptions = {
+            body: payload.notification.body || "Your scheduled task requires attention.",
+            icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png',
+            badge: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png'
+        };
+
+        self.registration.showNotification(notificationTitle, notificationOptions);
+    });
+} catch (error) {
+    console.error("Failed to initialize messaging engine inside Service Worker:", error);
+}
+
+// Wakes up the background thread when a user clicks on the native taskbar notification card
+self.addEventListener('notificationclick', (event) => {
+    console.log('🎯 Notification clicked! Target URL: http://localhost:8080/');
+
+    // 1. Immediately dismiss the notification banner from the taskbar
+    event.notification.close();
+
+    // 2. Query all active browser tabs to see if our dashboard is already running
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then((windowClients) => {
+                // Check if your local port is already open in any tab
+                for (let i = 0; i < windowClients.length; i++) {
+                    const client = windowClients[i];
+                    if (client.url.includes('localhost:8080') && 'focus' in client) {
+                        // Perfect! Bring the user straight to that already-open tab
+                        return client.focus();
+                    }
+                }
+                // If the tab was closed, open a brand-new one pointing to localhost
+                if (clients.openWindow) {
+                    return clients.openWindow('http://localhost:8080/');
+                }
+            })
+    );
+});

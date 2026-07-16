@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Hide the Firebase private key from GitHub
+**/src/main/resources/firebase-service-account.json

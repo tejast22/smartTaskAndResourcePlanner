@@ -36,7 +36,6 @@ public class TaskController {
         return taskService.getTasksForUser(targetUserId);
     }
 
-    // FIXED: Ensured that user verification is tied directly to status mutations
     @PutMapping("/{id}/status")
     public List<Task> updateStatus(
             @PathVariable Long id,
@@ -44,11 +43,7 @@ public class TaskController {
             @RequestHeader(value = "X-User-Id", required = false) Long userId){
 
         Long targetUserId = (userId != null) ? userId : 1L;
-
-        // Let's protect data integrity: make sure we use the transactional service hook
-        // that handles the entity tracking and timestamp mapping correctly!
         taskService.updateTaskStatus(id, status);
-
         return taskService.getTasksForUser(targetUserId);
     }
 
@@ -59,6 +54,17 @@ public class TaskController {
 
         taskService.deleteId(id);
         Long targetUserId = (userId != null) ? userId : 1L;
+        return taskService.getTasksForUser(targetUserId);
+    }
+
+    @PutMapping("/{id}/due-date")
+    public List<Task> updateDueDate(
+            @PathVariable Long id,
+            @RequestParam String date,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+
+        Long targetUserId = (userId != null) ? userId : 1L;
+        taskService.updateTaskDueDate(id, date);
         return taskService.getTasksForUser(targetUserId);
     }
 }
