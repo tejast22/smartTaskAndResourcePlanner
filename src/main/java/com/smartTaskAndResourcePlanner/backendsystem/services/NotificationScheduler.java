@@ -3,9 +3,6 @@ package com.smartTaskAndResourcePlanner.backendsystem.services;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
 import com.smartTaskAndResourcePlanner.backendsystem.models.Task;
 import com.smartTaskAndResourcePlanner.backendsystem.repositories.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,12 +19,12 @@ import java.util.List;
 
 @Component
 @EnableScheduling
-public class EmailScheduler {
+public class NotificationScheduler {
 
     private final TaskRepository taskRepository;
 
     @Autowired
-    public EmailScheduler(TaskRepository taskRepository) {
+    public NotificationScheduler(TaskRepository taskRepository) {
         this.taskRepository = taskRepository;
     }
 
