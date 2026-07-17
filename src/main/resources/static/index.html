@@ -170,6 +170,28 @@
         .btn-main:hover { background-color: #1d4ed8; }
 
         .status-done { color: #16a34a; font-weight: bold; margin-right: 8px; }
+
+        /* 📱 Targets screens like mobile phones (768px wide or smaller) */
+        @media screen and (max-width: 768px) {
+
+            /* Force flexbox containers to stack vertically instead of horizontally */
+            .main-container, .dashboard-grid, .task-columns {
+                flex-direction: column !important;
+                display: flex;
+            }
+
+            /* Make sidebars or main columns take up the full width of the phone screen */
+            .sidebar, .main-content, .column {
+                width: 100% !important;
+                margin-bottom: 15px;
+            }
+
+            /* Keep images from overflowing the phone boundaries */
+            img {
+                max-width: 100%;
+                height: auto;
+            }
+        }
     </style>
 </head>
 <body>
