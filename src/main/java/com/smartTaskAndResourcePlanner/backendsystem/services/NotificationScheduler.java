@@ -61,30 +61,26 @@ public class NotificationScheduler {
     @Transactional
     public void checkAndSendReminders() {
         LocalDateTime now = LocalDateTime.now();
-        System.out.println("\n==================================================");
-        System.out.println("⏰ SCHEDULER BEAT: Checking alarms at: " + now);
 
-        List<Task> allTasks = taskRepository.findAll();
-        System.out.println("📊 DATABASE CHECK: Found total tasks: " + allTasks.size());
+        // 🟢 HIGHLY OPTIMIZED: The database filters out the tasks. Java loads zero junk records into RAM.
+        List<Task> tasksToAlert = taskRepository.findByStatusInAndReminderSentFalseAndDueDateLessThanEqual(
+                List.of("pending", "working", "PENDING", "WORKING"),
+                now
+        );
 
-        for (Task t : allTasks) {
-            System.out.println("👉 Task: [" + t.getTitle() + "] | Status: [" + t.getStatus() + "] | Due: [" + t.getDueDate() + "] | Sent: [" + t.isReminderSent() + "]");
+        // If no tasks match the reminder criteria right now, exit immediately to save system CPU resources
+        if (tasksToAlert.isEmpty()) {
+            return;
         }
 
-        List<Task> tasksToAlert = allTasks.stream()
-                .filter(task -> "pending".equalsIgnoreCase(task.getStatus()) || "working".equalsIgnoreCase(task.getStatus()))
-                .filter(task -> !task.isReminderSent())
-                .filter(task -> task.getDueDate() != null && !now.isBefore(task.getDueDate()))
-                .toList();
-
-        System.out.println("🎯 FILTERS APPLIED: Tasks matching criteria to send right now: " + tasksToAlert.size());
+        System.out.println("\n==================================================");
+        System.out.println("⏰ SCHEDULER BEAT: Processing alarms at: " + now);
+        System.out.println("🎯 TARGET ENGINES: Tasks matching criteria to send right now: " + tasksToAlert.size());
         System.out.println("==================================================\n");
 
         for (Task task : tasksToAlert) {
             if (task.getUser() != null) {
                 String username = task.getUser().getUsername();
-
-                // Successfully matched onto our ordered list collection
                 List<String> tokens = task.getUser().getFcmTokens();
 
                 System.out.println(">>> MATCH FOUND: Preparing multi-device push dispatch for: " + task.getTitle());

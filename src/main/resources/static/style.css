@@ -304,7 +304,7 @@ input[type="datetime-local"] {
 }
 
 /* ==========================================================================
-   8. DEDICATED LOGIN SCREEN
+   8. DEDICATED LOGIN SCREEN (🛠️ REPAIRED MOBILE POSITIONING ZONE)
    ========================================================================== */
 .login-wrapper {
     display: flex;
@@ -350,23 +350,36 @@ input[type="datetime-local"] {
     position: relative;
     display: flex;
     align-items: center;
+    width: 100%;
 }
 
 .password-wrapper input {
     width: 100%;
-    padding-right: 40px;
+    padding-right: 45px !important; /* Forces a safe pocket zone for the eye emoji */
+    box-sizing: border-box;
 }
 
+/* Fixed dimensions block mobile queries from expanding the toggle hitbox */
 .password-wrapper button {
     position: absolute;
-    right: 5px;
-    background: transparent;
-    border: none;
-    padding: 5px;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
     cursor: pointer;
     font-size: 16px;
     color: var(--text-muted);
-    min-height: auto;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 32px !important;       /* Locks strict responsive boundaries */
+    height: 32px !important;      /* Locks strict responsive boundaries */
+    min-height: 32px !important;  /* Overrides the mobile 44px min-height rule */
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
 }
 
 .btn-secondary {
