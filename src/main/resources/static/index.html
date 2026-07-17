@@ -2,315 +2,71 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Task and Resource Planner</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task and Resource Planner</title>
+
+    <!-- Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
 
+    <!-- Flatpickr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <!-- Project Files -->
+    <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="/manifest.json">
-
-    <style>
-        /* --- THEME ROOT CONFIGURATION VARIABLES --- */
-        :root {
-            --bg-gradient: radial-gradient(at 0% 0%, rgba(244, 246, 249, 1) 0, transparent 50%),
-            radial-gradient(at 100% 0%, rgba(224, 231, 255, 0.6) 0, transparent 50%),
-            radial-gradient(at 50% 100%, rgba(243, 232, 255, 0.4) 0, transparent 50%),
-            #f1f5f9;
-            --card-bg: #ffffff;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
-            --sidebar-bg: #ffffff;
-            --header-bg: rgba(255, 255, 255, 0.85);
-            --th-bg: #f9fafb;
-        }
-
-        [data-theme="dark"] {
-            --bg-gradient: radial-gradient(at 0% 0%, rgba(15, 23, 42, 1) 0, transparent 50%),
-            radial-gradient(at 100% 0%, rgba(30, 27, 75, 0.5) 0, transparent 50%),
-            radial-gradient(at 50% 100%, rgba(58, 28, 115, 0.2) 0, transparent 50%),
-            #0b0f19;
-            --card-bg: #111827;
-            --text-main: #f9fafb;
-            --text-muted: #9ca3af;
-            --border-color: #374151;
-            --sidebar-bg: #111827;
-            --header-bg: rgba(17, 24, 39, 0.85);
-            --th-bg: #1f2937;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--bg-gradient);
-            background-attachment: fixed;
-            margin: 0;
-            padding: 0;
-            color: var(--text-main);
-            transition: background 0.3s ease, color 0.3s ease;
-        }
-
-        canvas {
-            max-width: 100% !important;
-            max-height: 100% !important;
-        }
-
-        /* --- LAYOUT WRAPPERS --- */
-        header {
-            background: var(--header-bg);
-            backdrop-filter: blur(10px);
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border-bottom: 1px solid var(--border-color);
-            transition: background 0.3s ease, border-color 0.3s ease;
-        }
-
-        .main-container {
-            display: flex;
-            min-height: calc(100vh - 71px);
-        }
-
-        #sidebar {
-            width: 320px;
-            background-color: var(--sidebar-bg);
-            padding: 25px;
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-
-        #workspace {
-            flex: 1;
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
-        }
-
-        section {
-            background-color: var(--card-bg);
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            border: 1px solid var(--border-color);
-            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        /* --- INPUTS & CONTROLS --- */
-        form {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        input, select, button {
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            background-color: var(--card-bg);
-            color: var(--text-main);
-            border-radius: 6px;
-            font-size: 14px;
-            outline: none;
-            transition: all 0.2s ease;
-        }
-        input:focus, select:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-        }
-
-        /* --- TABLES SYSTEM --- */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        th, td {
-            padding: 14px;
-            border-bottom: 1px solid var(--border-color);
-            text-align: left;
-            transition: border-color 0.3s ease;
-        }
-        th {
-            background-color: var(--th-bg);
-            color: var(--text-muted);
-            font-weight: 600;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        /* --- THEME TOGGLE BUTTON --- */
-        .theme-toggle {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            cursor: pointer;
-            padding: 8px 12px;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            border-radius: 20px;
-        }
-        .theme-toggle:hover {
-            background-color: var(--th-bg);
-        }
-
-        /* --- LAYOUT CONTROL PANEL --- */
-        #auth-inputs { display: flex; gap: 10px; align-items: center; }
-        .action-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-
-        .btn-small { padding: 6px 12px; border-radius: 4px; color: white; border: none; cursor: pointer; font-size: 13px; font-weight: 500; }
-        .btn-blue { background-color: #3b82f6; }
-        .btn-gray { background-color: #6b7280; }
-        .btn-green { background-color: #22c55e; }
-        .btn-yellow { background-color: #eab308; }
-        .btn-red { background-color: #ef4444; }
-        .btn-main { background-color: #2563eb; color: white; border: none; cursor: pointer; font-weight: 600; }
-        .btn-main:hover { background-color: #1d4ed8; }
-
-        .status-done { color: #16a34a; font-weight: bold; margin-right: 8px; }
-
-        /* 📱 Targets screens like mobile phones (768px wide or smaller) */
-        @media screen and (max-width: 768px) {
-
-            /* 1. Stack the main layout and fix the Sidebar ID targeting */
-            .main-container {
-                flex-direction: column !important;
-            }
-
-            #sidebar {
-                width: 100% !important;
-                box-sizing: border-box; /* Stops padding from pushing it off screen */
-                border-right: none;
-                border-bottom: 1px solid var(--border-color);
-                padding: 20px 15px;
-            }
-
-            #workspace {
-                padding: 15px; /* Less padding on small screens */
-            }
-
-            /* 2. Collapse the Giant Navbar */
-            header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-                padding: 15px;
-            }
-
-            #auth-container {
-                width: 100%;
-            }
-
-            #auth-inputs {
-                flex-direction: column; /* Stacks the inputs vertically */
-                width: 100%;
-            }
-
-            #auth-inputs input, #auth-inputs button {
-                width: 100%; /* Makes buttons and inputs edge-to-edge for easy tapping */
-                box-sizing: border-box;
-            }
-
-            /* 3. THE TABLE-TO-CARD FLIP MAGIC */
-            table, thead, tbody, th, td, tr {
-                display: block; /* Shatters the rigid table structure */
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            /* Hide the top header row completely */
-            thead tr {
-                display: none;
-            }
-
-            /* Turn each row into a beautifully padded UI Card */
-            tbody tr {
-                background-color: var(--card-bg);
-                border: 1px solid var(--border-color);
-                border-radius: 10px;
-                margin-bottom: 15px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            }
-
-            /* Shift data to the right side of the card */
-            td {
-                border: none;
-                border-bottom: 1px solid var(--border-color);
-                position: relative;
-                padding: 12px 12px 12px 50%; /* 50% left padding makes room for our fake labels */
-                text-align: right;
-                min-height: 24px;
-                font-size: 14px;
-            }
-
-            /* Remove the bottom line from the last item (Actions) */
-            td:last-child {
-                border-bottom: none;
-                display: flex;
-                justify-content: flex-end;
-            }
-
-            /* Inject labels on the left side to replace the hidden table headers */
-            td::before {
-                position: absolute;
-                top: 12px;
-                left: 12px;
-                width: 45%;
-                white-space: nowrap;
-                text-align: left;
-                font-weight: 700;
-                color: var(--text-muted);
-                font-size: 11px;
-                text-transform: uppercase;
-            }
-
-            /* Map the specific labels for the Active Tasks Table */
-            #active-tasks-section td:nth-of-type(1)::before { content: "ID"; }
-            #active-tasks-section td:nth-of-type(2)::before { content: "Title"; }
-            #active-tasks-section td:nth-of-type(3)::before { content: "Status"; }
-            #active-tasks-section td:nth-of-type(4)::before { content: "Priority"; }
-            #active-tasks-section td:nth-of-type(5)::before { content: "Due Date"; }
-            #active-tasks-section td:nth-of-type(6)::before { content: "Actions"; }
-
-            /* Map the specific labels for the Completed Tasks Table */
-            #completed-tasks-section td:nth-of-type(1)::before { content: "ID"; }
-            #completed-tasks-section td:nth-of-type(2)::before { content: "Title"; }
-            #completed-tasks-section td:nth-of-type(3)::before { content: "Status"; }
-            #completed-tasks-section td:nth-of-type(4)::before { content: "Priority"; }
-            #completed-tasks-section td:nth-of-type(5)::before { content: "Completed At"; }
-            #completed-tasks-section td:nth-of-type(6)::before { content: "Actions"; }
-        }
-    </style>
 </head>
 <body>
 
-<header>
-    <div>
-        <h2 style="margin:0; font-size: 20px; color: #2563eb; font-weight: 700;">Smart Planner Workspace</h2>
-        <p id="user-status" style="margin: 5px 0 0; font-size: 13px; font-weight: bold; color: #ef4444;">Please log in to manage tasks.</p>
+<!-- 1. HEADER -->
+<header class="app-header">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <h2 style="margin:0; font-size: 20px; color: #2563eb; font-weight: 700;">Smart Planner</h2>
+        <button id="theme-btn" class="theme-toggle">🌙</button>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <button id="theme-btn" class="theme-toggle">🌙 Dark Mode</button>
+    <!-- Desktop Navigation -->
+    <nav class="desktop-nav">
+        <button class="tab-btn" onclick="switchTab('active')">Active</button>
+        <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
+        <button class="tab-btn" onclick="switchTab('analytics')">Analytics</button>
+        <button class="btn-logout" onclick="logout()" style="background:transparent; border:none; color:#ef4444; font-weight:bold; cursor:pointer;">Logout</button>
+    </nav>
 
-        <div id="auth-container">
-            <div id="auth-inputs">
-                <input type="text" id="auth-username" placeholder="Username">
-                <div style="position: relative; display: flex; align-items: center;">
-                    <input type="password" id="auth-password" placeholder="Password" style="padding-right: 40px;">
-                    <button id="toggle-password-btn" type="button" style="position: absolute; right: 5px; background: transparent; border: none; padding: 5px; cursor: pointer; font-size: 14px; color: var(--text-muted);">👁️</button>
-                </div>
-                <button id="btn-login" class="btn-small btn-blue">Login</button>
-                <button id="btn-register" class="btn-small btn-green">Register</button>
-            </div>
-            <button id="btn-logout" class="btn-small btn-red" style="display: none;">Logout</button>
+    <!-- Mobile 3-Dots Navigation -->
+    <div class="mobile-nav">
+        <button class="kebab-btn" onclick="toggleMenu()">⋮</button>
+        <div id="mobile-dropdown" class="dropdown-content">
+            <button onclick="switchTab('active')">📝 Active Tasks</button>
+            <button onclick="switchTab('completed')">✔️ Completed</button>
+            <button onclick="switchTab('analytics')">📊 Analytics</button>
+            <hr>
+            <button onclick="logout()" style="color: #ef4444;">🚪 Logout</button>
         </div>
     </div>
 </header>
 
+<!-- 2. DEDICATED LOGIN SCREEN -->
+<div id="login-screen" class="login-wrapper">
+    <div class="login-card">
+        <h2>Welcome Back</h2>
+        <p>Please log in to access your workspace.</p>
+
+        <div id="auth-inputs" class="auth-vertical">
+            <input type="text" id="auth-username" placeholder="Username">
+            <div class="password-wrapper">
+                <input type="password" id="auth-password" placeholder="Password" style="padding-right: 40px;">
+                <button id="toggle-password-btn" type="button">👁️</button>
+            </div>
+            <button id="btn-login" class="btn-main">Login</button>
+            <button id="btn-register" class="btn-secondary">Create Account</button>
+        </div>
+    </div>
+</div>
+
+<!-- 3. MAIN DASHBOARD CONTAINER -->
 <div class="main-container">
     <div id="sidebar">
         <h3 style="margin-top:0; font-weight: 600;">Create a Task</h3>
@@ -331,24 +87,24 @@
             <label style="font-size:11px; font-weight: 700; color: var(--text-muted);">REMINDER DATE AND TIME</label>
             <input type="datetime-local" name="dueDate">
 
-            <button class="btn-main" type="button" onclick="document.getElementById('task-form').dispatchEvent(new Event('submit'))">Add Task</button>
+            <button class="btn-main" type="submit">Add Task</button>
         </form>
         <p id="sidebar-guest-msg" style="color: var(--text-muted); font-size: 14px;">Please login to unlock task creation workspace.</p>
     </div>
 
     <div id="workspace">
-
+        <!-- Analytics Section -->
         <div id="analytics-dashboard" style="display: none;">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
-                <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #3b82f6; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+                <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #3b82f6; border: 1px solid var(--border-color);">
                     <h4 style="margin: 0; color: var(--text-muted); font-size: 11px; text-transform: uppercase; font-weight: 700;">Total Active Tasks</h4>
                     <p id="stat-total-tasks" style="margin: 10px 0 0; font-size: 28px; font-weight: bold; color: #3b82f6;">0</p>
                 </div>
-                <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #eab308; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+                <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #eab308; border: 1px solid var(--border-color);">
                     <h4 style="margin: 0; color: var(--text-muted); font-size: 11px; text-transform: uppercase; font-weight: 700;">Pending / In Progress</h4>
                     <p id="stat-pending-tasks" style="margin: 10px 0 0; font-size: 28px; font-weight: bold; color: #eab308;">0</p>
                 </div>
-                <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #22c55e; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+                <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #22c55e; border: 1px solid var(--border-color);">
                     <h4 style="margin: 0; color: var(--text-muted); font-size: 11px; text-transform: uppercase; font-weight: 700;">Completed This Month</h4>
                     <p id="stat-completed-month" style="margin: 10px 0 0; font-size: 28px; font-weight: bold; color: #22c55e;">0</p>
                 </div>
@@ -356,567 +112,31 @@
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
                 <div style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: 260px; display: flex; flex-direction: column; align-items: center;">
-                    <h3 style="margin-top: 0; font-size: 14px; color: var(--text-main); font-weight: 600;">Work Breakdown (Current Status)</h3>
+                    <h3 style="margin-top: 0; font-size: 14px; color: var(--text-main); font-weight: 600;">Work Breakdown</h3>
                     <div style="width: 100%; max-width: 180px; height: 100%;"><canvas id="statusPieChart"></canvas></div>
                 </div>
                 <div style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: 260px; display: flex; flex-direction: column; align-items: center;">
-                    <h3 style="margin-top: 0; font-size: 14px; color: var(--text-main); font-weight: 600;">Performance Breakdown (MoM)</h3>
+                    <h3 style="margin-top: 0; font-size: 14px; color: var(--text-main); font-weight: 600;">Performance Breakdown</h3>
                     <div style="width: 100%; max-width: 280px; height: 100%;"><canvas id="monthlyBarChart"></canvas></div>
                 </div>
             </div>
         </div>
 
+        <!-- Active Grid -->
         <section id="active-tasks-section">
-            <h3 style="margin-top: 0; font-weight: 600; color: #3b82f6;">Active Tasks Pipeline (Pending & Working)</h3>
-            <table>
-                <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Title</th>
-                    <th>Status</th>
-                    <th>Priority</th>
-                    <th>Due Date</th>
-                    <th style="text-align:right">Actions</th>
-                </tr>
-                </thead>
-                <tbody id="active-task-table-body">
-                </tbody>
-            </table>
+            <h3 style="margin-top: 0; font-weight: 600; color: #3b82f6;">Active Tasks Pipeline</h3>
+            <div id="active-task-grid" class="task-grid"></div>
         </section>
 
+        <!-- Completed Grid -->
         <section id="completed-tasks-section" style="margin-top: 20px;">
             <h3 style="margin-top: 0; font-weight: 600; color: #22c55e;">✔️ Completed Archive</h3>
-            <table>
-                <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Title</th>
-                    <th>Status</th>
-                    <th>Priority</th>
-                    <th>Completed At</th> <th style="text-align:right">Actions</th>
-                </tr>
-                </thead>
-                <tbody id="completed-task-table-body">
-                </tbody>
-            </table>
+            <div id="completed-task-grid" class="task-grid"></div>
         </section>
     </div>
 </div>
 
-<script>
-    let currentUserId = localStorage.getItem('currentUserId') || null;
-    let currentUsername = localStorage.getItem('currentUsername') || "Guest";
-
-    // Chart Handles
-    let pieChartInstance = null;
-    let barChartInstance = null;
-
-    // --- MANAGE LIGHT / DARK THEME TOGGLES ---
-    const themeBtn = document.getElementById('theme-btn');
-    let savedTheme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    updateThemeButtonUI(savedTheme);
-
-    themeBtn.addEventListener('click', () => {
-        let currentTheme = document.documentElement.getAttribute('data-theme');
-        let newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        updateThemeButtonUI(newTheme);
-
-        // Force refresh charts to recalculate label color values
-        if(window.lastLoadedTasks) {
-            updateDashboardMetrics(window.lastLoadedTasks);
-        }
-    });
-
-    function updateThemeButtonUI(theme) {
-        themeBtn.innerText = theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
-    }
-
-    function loadTasks(){
-        fetch('/tasks', {
-            method: 'GET',
-            headers: { 'X-User-Id': currentUserId || '' }
-        })
-            .then(response => response.json())
-            .then(tasks => {
-                window.lastLoadedTasks = tasks; // Cache to memory
-
-                // Grab handles for both separate table body structures
-                const activeBody = document.getElementById('active-task-table-body');
-                const completedBody = document.getElementById('completed-task-table-body');
-
-                // Clear out both containers before rendering
-                activeBody.innerHTML = '';
-                completedBody.innerHTML = '';
-
-                tasks.forEach(task => {
-                    let actionButtonHtml = `<div class="action-buttons">`;
-
-                    if(task.status.toLowerCase() === 'pending'){
-                        actionButtonHtml += `<button onclick="changeStatus('${task.id}', 'working')" class="btn-small btn-blue">Start Working</button>`;
-                    } else if(task.status.toLowerCase() === 'working'){
-                        actionButtonHtml += `
-                        <button onclick="changeStatus('${task.id}', 'pending')" class="btn-small btn-gray">⏪ Pending</button>
-                        <button onclick="changeStatus('${task.id}', 'completed')" class="btn-small btn-green">Mark Completed</button>`;
-                    } else if(task.status.toLowerCase() === 'completed'){
-                        actionButtonHtml += `
-                        <span class="status-done">✔️ Done</span>
-                        <button onclick="changeStatus('${task.id}', 'working')" class="btn-small btn-yellow">⏪ Re-open</button>`;
-                    }
-
-                    actionButtonHtml += `<button onclick="deleteTask(${task.id})" class="btn-small btn-red">Delete</button></div>`;
-
-                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                    const pendingBg = isDark ? 'background:#1e293b; color:#9ca3af;' : 'background:#f3f4f6; color:#374151;';
-                    const workingBg = isDark ? 'background:#713f12; color:#fef08a;' : 'background:#fef9c3; color:#a16207;';
-                    const completedBg = isDark ? 'background:#064e3b; color:#4ade80;' : 'background:#dcfce7; color:#15803d;';
-
-                    let statusStyle = pendingBg;
-                    if(task.status.toLowerCase() === 'working') statusStyle = workingBg;
-                    if(task.status.toLowerCase() === 'completed') statusStyle = completedBg;
-
-                    // --- CHANGED AREA: DYNAMIC & EDITABLE TIME INPUT ENGINE ---
-                    let timeColumnData = "";
-                    let isCompletedTask = task.status.toLowerCase() === 'completed';
-
-                    if (isCompletedTask) {
-                        // If the task is done, display completion timestamp as plain text
-                        if (task.completedAt) {
-                            const compDate = new Date(task.completedAt);
-                            timeColumnData = "🎉 " + compDate.toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-                        } else {
-                            timeColumnData = "✔️ Done";
-                        }
-                    } else {
-                        // For active tasks (Pending/Working), render a clickable HTML5 calendar input box
-                        const rawDateStr = task.dueDate ? task.dueDate.substring(0, 16) : "";
-                        timeColumnData = `
-                        <input type="datetime-local"
-                            value="${rawDateStr}"
-                            onchange="updateDueDate('${task.id}', this.value)"
-                            style="border: 1px dashed var(--border-color); background: transparent; color: var(--text-main); padding: 4px; border-radius: 4px; font-family: inherit; cursor: pointer;">
-                    `;
-                    }
-
-                    const row = `<tr>
-                    <td>${task.id}</td>
-                    <td>${task.title}</td>
-                    <td><span style="padding: 4px 10px; border-radius: 20px; font-size:12px; font-weight:600; ${statusStyle}">${task.status}</span></td>
-                    <td><strong>${task.priority}</strong>/10</td>
-                    <td style="font-size: 13px; font-weight: 500; color: var(--text-muted);">${timeColumnData}</td>
-                    <td>${actionButtonHtml}</td>
-                </tr>`;
-
-                    // DYNAMIC ROUTING SYSTEM: Push row to its designated workspace area!
-                    if (isCompletedTask) {
-                        completedBody.innerHTML += row;
-                    } else {
-                        activeBody.innerHTML += row;
-                    }
-                });
-
-                updateDashboardMetrics(tasks);
-            })
-            .catch(error => console.error('Error fetching tasks', error));
-    }
-
-    window.onload = function() {
-        loadTasks();
-        updateAuthUI();
-    };
-
-    // FORM SUBMISSION PIPELINE
-    const form = document.getElementById('task-form');
-    form.addEventListener('submit', function(event){
-        event.preventDefault();
-
-        const titleInput = document.querySelector('input[name="title"]');
-        const titleValue = titleInput.value.trim();
-        const priorityInput = document.querySelector('input[name="priority"]');
-        const priorityValue = parseInt(priorityInput.value);
-
-        //read the chosen time from calendar input box
-        const dueDateInput = document.querySelector('input[name="dueDate"]');
-        const dueDateValue = dueDateInput.value;
-
-        if (titleValue === "") { alert("Task name is required!"); return; }
-        if (priorityValue < 1 || priorityValue > 10 || isNaN(priorityValue)){ alert("Priority must be between 1 to 10"); return; }
-
-        const newTask = {
-            title: titleValue,
-            status: document.querySelector('select[name="status"]').value,
-            priority: priorityValue,
-            dueDate:dueDateValue ? dueDateValue : null
-        };
-
-        fetch('/tasks',{
-            method: 'POST',
-            headers: {
-                'Content-Type':'application/json',
-                'X-User-Id': currentUserId || 1
-            },
-            body: JSON.stringify(newTask)
-        })
-            .then(async response => {
-                if (!response.ok) { return; }
-                loadTasks();
-                titleInput.value = '';
-                priorityInput.value = '';
-                dueDateInput.value = '';
-            })
-            .catch(error => console.error('Network error:', error));
-    });
-
-    // AUTH ACTION CONTROLLERS
-    document.getElementById('btn-register').addEventListener('click', function() {
-        const usernameInput = document.getElementById('auth-username').value.trim();
-        const passwordInput = document.getElementById('auth-password').value.trim();
-        if (!usernameInput || !passwordInput) { alert("Enter credentials!"); return; }
-
-        fetch('/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: usernameInput, password: passwordInput })
-        })
-            .then(async response => {
-                const data = await response.json();
-                alert(data.message);
-                if(response.ok) {
-                    document.getElementById('auth-username').value = '';
-                    document.getElementById('auth-password').value = '';
-                }
-            });
-    });
-
-    document.getElementById('btn-login').addEventListener('click', function() {
-        const usernameInput = document.getElementById('auth-username').value.trim();
-        const passwordInput = document.getElementById('auth-password').value.trim();
-        if (!usernameInput || !passwordInput) { alert("Enter credentials!"); return; }
-
-        fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: usernameInput, password: passwordInput })
-        })
-            .then(async response => {
-                if (!response.ok) { const data = await response.json(); alert(data.message); return; }
-                const data = await response.json();
-                localStorage.setItem('currentUserId', data.userId);
-                localStorage.setItem('currentUsername', data.username);
-                currentUserId = data.userId;
-                currentUsername = data.username;
-                updateAuthUI();
-                loadTasks();
-                alert("Welcome, " + currentUsername + "!");
-            });
-    });
-
-    function updateAuthUI() {
-        const statusText = document.getElementById('user-status');
-        const taskForm = document.getElementById('task-form');
-        const sidebarMsg = document.getElementById('sidebar-guest-msg');
-        const dashboard = document.getElementById('analytics-dashboard');
-        const authInputs = document.getElementById('auth-inputs');
-        const logoutBtn = document.getElementById('btn-logout');
-
-        if (currentUserId) {
-            statusText.innerText = `Logged in as: ${currentUsername}`;
-            statusText.style.color = "#22c55e";
-            taskForm.style.display = "flex";
-            sidebarMsg.style.display = "none";
-            dashboard.style.display = "block";
-            authInputs.style.display = "none";
-            logoutBtn.style.display = "block";
-        } else {
-            statusText.innerText = "Status: Please log in to manage tasks.";
-            statusText.style.color = "#ef4444";
-            taskForm.style.display = "none";
-            sidebarMsg.style.display = "block";
-            dashboard.style.display = "none";
-            authInputs.style.display = "flex";
-            logoutBtn.style.display = "none";
-        }
-    }
-
-    // --- CHART VISUALIZATION RENDERING ENGINE WITH TIMELINE LOGIC ---
-    function updateDashboardMetrics(tasks) {
-        if (!currentUserId) return;
-
-        // A. Calculate Card Values
-        let total = tasks.length;
-        let pendingOrWorking = tasks.filter(t => t.status.toLowerCase() === 'pending' || t.status.toLowerCase() === 'working').length;
-
-        // B. Calculate Dynamic Month Filtering
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth(); // 0 = Jan, 11 = Dec
-
-        let completedThisMonthCount = 0;
-        let completedLastMonthCount = 0;
-
-        tasks.forEach(t => {
-            if (t.status.toLowerCase() === 'completed' && t.completedAt) {
-                const compDate = new Date(t.completedAt);
-
-                if (compDate.getFullYear() === currentYear && compDate.getMonth() === currentMonth) {
-                    completedThisMonthCount++;
-                } else if (
-                    (currentMonth === 0 && compDate.getFullYear() === currentYear - 1 && compDate.getMonth() === 11) ||
-                    (compDate.getFullYear() === currentYear && compDate.getMonth() === currentMonth - 1)
-                ) {
-                    completedLastMonthCount++;
-                }
-            }
-        });
-
-        // Push counts to UI counters
-        document.getElementById('stat-total-tasks').innerText = total;
-        document.getElementById('stat-pending-tasks').innerText = pendingOrWorking;
-        document.getElementById('stat-completed-month').innerText = completedThisMonthCount;
-
-        let pendingCount = tasks.filter(t => t.status.toLowerCase() === 'pending').length;
-        let workingCount = tasks.filter(t => t.status.toLowerCase() === 'working').length;
-        let totalCompletedCount = tasks.filter(t => t.status.toLowerCase() === 'completed').length;
-
-        // Clear canvas references
-        if (pieChartInstance) pieChartInstance.destroy();
-        if (barChartInstance) barChartInstance.destroy();
-
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const labelColor = isDark ? '#9ca3af' : '#4b5563';
-        const gridColor = isDark ? '#374151' : '#e5e7eb';
-
-        // Render Work Breakdown (Current Status Distribution)
-        const ctxPie = document.getElementById('statusPieChart').getContext('2d');
-        pieChartInstance = new Chart(ctxPie, {
-            type: 'doughnut',
-            data: {
-                labels: ['Pending', 'Working', 'Completed'],
-                datasets: [{
-                    data: [pendingCount, workingCount, totalCompletedCount],
-                    backgroundColor: ['#6b7280', '#eab308', '#22c55e'],
-                    borderColor: isDark ? '#111827' : '#ffffff',
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: labelColor } }
-                }
-            }
-        });
-
-        // Render Month-over-Month Comparisons
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const lastMonthLabel = monthNames[currentMonth === 0 ? 11 : currentMonth - 1];
-        const thisMonthLabel = monthNames[currentMonth];
-
-        const ctxBar = document.getElementById('monthlyBarChart').getContext('2d');
-        barChartInstance = new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: [lastMonthLabel + ' (Last Month)', thisMonthLabel + ' (This Month)'],
-                datasets: [{
-                    label: 'Tasks Completed',
-                    data: [completedLastMonthCount, completedThisMonthCount],
-                    backgroundColor: ['#6b7280', '#22c55e'],
-                    borderRadius: 6,
-                    maxBarThickness: 45
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1, color: labelColor },
-                        grid: { color: gridColor }
-                    },
-                    x: {
-                        ticks: { color: labelColor },
-                        grid: { display: false }
-                    }
-                }
-            }
-        });
-    }
-
-    function changeStatus(id , newStatus){
-        fetch(`/tasks/${id}/status?status=${newStatus}`,{
-            method: 'PUT',
-            headers: { 'X-User-Id': currentUserId || 1 }
-        }).then(response => { if(response.ok) loadTasks(); });
-    }
-
-    function deleteTask(id){
-        if(confirm("Are you sure you want to delete this task?")){
-            fetch(`/tasks/${id}`,{
-                method: 'DELETE',
-                headers: { 'X-User-Id': currentUserId || 1 }
-            }).then(response => { if(response.ok) loadTasks(); });
-        }
-    }
-
-    document.getElementById('btn-logout').addEventListener('click', function() {
-        localStorage.removeItem('currentUserId');
-        localStorage.removeItem('currentUsername');
-        currentUserId = null;
-        currentUsername = "Guest";
-        updateAuthUI();
-        loadTasks();
-        alert("Logged out successfully!");
-    });
-
-    // --- PASSWORD VISIBILITY SWITCH FUNCTION ENGINE ---
-    document.getElementById('toggle-password-btn').addEventListener('click', function() {
-        const passwordField = document.getElementById('auth-password');
-        if (passwordField.type === 'password') {
-            passwordField.type = 'text';
-            this.innerText = '🙈';
-        } else {
-            passwordField.type = 'password';
-            this.innerText = '👁️';
-        }
-    });
-
-    // ==========================================
-    // PHASE 3: FIREBASE BROWSER ENGINE CORES
-    // ==========================================
-
-    // ⚠️ REPLACE THESE PLACEHOLDER VALUES WITH YOUR 6 ACTUAL KEYS FROM FIREBASE CONSOLE:
-    const firebaseConfig = {
-        apiKey: "AIzaSyA5uop4pkbD10GD2S-KnyPZigHWyLQmzhI",
-        authDomain: "smarttaskplanner-769f3.firebaseapp.com",
-        projectId: "smarttaskplanner-769f3",
-        storageBucket: "smarttaskplanner-769f3.firebasestorage.app",
-        messagingSenderId: "288776496731",
-        appId: "1:288776496731:web:f1c448834fbac70537417e"
-    };
-
-    // Initialize Firebase cleanly using the compatibility mode wrapper
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    const messaging = firebase.messaging();
-
-    // Catch notifications in the foreground (when you are looking at the website)
-    messaging.onMessage((payload) => {
-        console.log('🔔 Foreground message received: ', payload);
-
-        // Force a native browser notification to pop up anyway!
-        new Notification(payload.notification.title, {
-            body: payload.notification.body,
-            icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png'
-        });
-    });
-
-    // SENDS THE UPDATED DATE FROM THE TABLE STRAIGHT TO THE JAVA CONTROLLER
-    function updateDueDate(taskId, newDateValue) {
-        if (!newDateValue) return;
-
-        console.log("📅 Rescheduling task ID: " + taskId + " to " + newDateValue);
-
-        fetch(`/tasks/${taskId}/due-date?date=${newDateValue}`, {
-            method: 'PUT',
-            headers: {
-                'X-User-Id': currentUserId || 1
-            }
-        })
-            .then(async response => {
-                if (response.ok) {
-                    console.log("💾 SUCCESS: Database updated.");
-                    loadTasks(); // Reloads layout to perfectly re-sort everything
-                } else {
-                    alert("Failed to update the time status.");
-                }
-            })
-            .catch(error => console.error("Error updating due date:", error));
-    }
-
-    // RUNS AUTOMATICALLY ON PORTAL INITIALIZATION
-    document.addEventListener("DOMContentLoaded", () => {
-        // Wait until the user has logged in and we have a valid user ID loaded
-        setTimeout(() => {
-            if (typeof currentUserId !== 'undefined' && currentUserId) {
-                setupPushNotifications();
-            }
-        }, 1500);
-    });
-
-    // SINGULAR, UNIFIED SYSTEM TO REGISTER BACKGROUND WORKER AND FETCH DEVICE TOKEN
-    function setupPushNotifications() {
-        if (!currentUserId) return;
-
-        // Check if the browser supports standard push notifications
-        if (!('serviceWorker' in navigator) || !('Notification' in window)) {
-            console.warn('Push notifications are not supported by this browser.');
-            return;
-        }
-
-        console.log("🔔 SYSTEM SECURITY: Checking browser push notification permissions...");
-        Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-                console.log('🎉 PERMISSION GRANTED: Notification access allowed!');
-
-                // Register our background service worker script
-                navigator.serviceWorker.register('/firebase-messaging-sw.js')
-                    .then(registration => {
-                        console.log('🤖 Service Worker registered successfully scope:', registration.scope);
-
-                        // Grab the device's signature address token using the registered worker channel
-                        // ⚠️ REPLACE 'YOUR_PUBLIC_VAPID_KEY' with the key from your Firebase Console
-                        messaging.getToken({
-                            serviceWorkerRegistration: registration,
-                            vapidKey: 'BKfByGWsP8J7jKjy6BF046pruU4nV_JKZ3KUb4pMW_15_i5vUnmnrGcsjDNOaBXd_3DBGotqrGOELxrp3IoUssY'
-                        })
-                            .then(currentToken => {
-                                if (currentToken) {
-                                    console.log("🔑 Generated Device Token successfully!");
-                                    sendTokenToBackend(currentToken);
-                                } else {
-                                    console.warn('⚠️ TOKEN NOTICE: No registration token available.');
-                                }
-                            })
-                            .catch(err => console.error('❌ CONFIGURATION ERROR: An error occurred while retrieving token: ', err));
-                    });
-            } else {
-                console.warn('❌ PERMISSION DENIED: User blocked notification alerts.');
-            }
-        });
-    }
-
-    // TRANSMITS THE UNIQUE DEVICE TOKEN DIRECTLY TO THE AUTH CONTROLLER COLLECTION
-    function sendTokenToBackend(token) {
-        const userId = currentUserId || 1;
-
-        // FIXED: Added the missing /api/auth prefix to match your backend controller routing exactly!
-        fetch(`/api/auth/update-fcm-token?userId=${userId}&token=${token}`, {
-            method: 'PUT'
-        })
-            .then(response => {
-                if (response.ok) {
-                    console.log("💾 MULTI-DEVICE SUCCESS: Current device verified and mapped into Supabase.");
-                } else {
-                    console.error("❌ BACKEND REJECTION: Failed to map token to database profile.");
-                }
-            })
-            .catch(err => console.error("Error updating tracking configuration token:", err));
-    }
-
-    // Hook this initialization routine right into your native page login action sequence
-    const nativeAuthUI = updateAuthUI;
-    updateAuthUI = function() {
-        nativeAuthUI();
-        if (currentUserId) {
-            setupPushNotifications();
-        }
-    };
-</script>
+<!-- 4. APP SCRIPT AT BOTTOM -->
+<script src="app.js"></script>
 </body>
 </html>
