@@ -2,7 +2,7 @@
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
 
-// DOUBLE CHECK: Make sure you put your real keys inside these quotes!
+// ⚠️ IMPORTANT: I put your real Firebase keys back in here so it can connect to FCM!
 const firebaseConfig = {
     apiKey: "AIzaSyA5uop4pkbD10GD2S-KnyPZigHWyLQmzhI",
     authDomain: "smarttaskplanner-769f3.firebaseapp.com",
@@ -16,11 +16,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 try {
+    // Defined globally within the file context to prevent ReferenceErrors
     const messaging = firebase.messaging();
 
-    // Catch incoming messages when your website dashboard tab is closed
+    // Catch incoming messages when your website dashboard tab is closed or minimized
     messaging.onBackgroundMessage((payload) => {
-        console.log('✨ Background message intercepted: ', payload);
+        console.log('🤖 Background message received in worker: ', payload);
 
         const notificationTitle = payload.notification.title || "⏰ Task Reminder";
         const notificationOptions = {
@@ -37,7 +38,7 @@ try {
 
 // Wakes up the background thread when a user clicks on the native taskbar notification card
 self.addEventListener('notificationclick', (event) => {
-    // 🌐 DYNAMIC DOMAIN: Automatically detects if you are on localhost or Render!
+    // DYNAMIC DOMAIN: Automatically detects if you are on localhost or Render!
     const targetUrl = self.location.origin;
     console.log(`🎯 Notification clicked! Target URL: ${targetUrl}`);
 
@@ -52,7 +53,7 @@ self.addEventListener('notificationclick', (event) => {
                 for (let i = 0; i < windowClients.length; i++) {
                     const client = windowClients[i];
                     if (client.url.startsWith(targetUrl) && 'focus' in client) {
-                        // Perfect! Bring the user straight to that already-open tab
+                        // Bring the user straight to that already-open tab
                         return client.focus();
                     }
                 }
@@ -62,22 +63,4 @@ self.addEventListener('notificationclick', (event) => {
                 }
             })
     );
-});
-// ==========================================
-// BACKGROUND MESSAGE LISTENER CORE
-// ==========================================
-
-// This specific listener wakes up when the browser or app is completely CLOSED!
-messaging.onBackgroundMessage((payload) => {
-    console.log('🤖 Background message received in worker: ', payload);
-
-    const notificationTitle = payload.notification.title || "Task Reminder!";
-    const notificationOptions = {
-        body: payload.notification.body || "You have an upcoming task.",
-        icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png',
-        badge: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png'
-    };
-
-    // Forces the phone or computer OS to show the native notification banner
-    return self.registration.showNotification(notificationTitle, notificationOptions);
 });

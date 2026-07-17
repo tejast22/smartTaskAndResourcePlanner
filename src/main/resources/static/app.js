@@ -189,9 +189,6 @@ function loadTasks(){
 // ==========================================
 // 4. PIPELINE FORM CONTROLLER SUBSYSTEM
 // ==========================================
-// ==========================================
-// 4. PIPELINE FORM CONTROLLER SUBSYSTEM
-// ==========================================
 function handleTaskSubmit(event) {
     event.preventDefault();
 
@@ -200,18 +197,14 @@ function handleTaskSubmit(event) {
     const priorityInput = document.querySelector('input[name="priority"]');
     const priorityValue = parseInt(priorityInput.value);
 
-    // 1. Convert status selection to UPPERCASE to align with Java Enum standards
     const statusSelect = document.querySelector('select[name="status"]');
     const statusValue = statusSelect ? statusSelect.value.toUpperCase() : "PENDING";
 
     const dueDateInput = document.querySelector('input[name="dueDate"]');
     let dueDateValue = dueDateInput.value;
 
-    // 2. Format the date string so standard Java LocalDateTime can read it smoothly
     if (dueDateValue) {
-        // Replaces any space with 'T' (e.g., "2026-07-17 15:30" becomes "2026-07-17T15:30")
         dueDateValue = dueDateValue.replace(' ', 'T');
-        // Appends seconds if missing to satisfy strict parsing engines
         if (dueDateValue.length === 16) {
             dueDateValue += ':00';
         }
@@ -569,14 +562,6 @@ if (!firebase.apps.length) {
 }
 const messaging = firebase.messaging();
 
-messaging.onMessage((payload) => {
-    console.log('🔔 Foreground message received: ', payload);
-    new Notification(payload.notification.title, {
-        body: payload.notification.body,
-        icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png'
-    });
-});
-
 function setupPushNotifications() {
     if (!currentUserId) return;
     if (!('serviceWorker' in navigator) || !('Notification' in window)) {
@@ -615,3 +600,41 @@ function sendTokenToBackend(token) {
         })
         .catch(err => console.error("Error updating tracking configuration token:", err));
 }
+
+// 🟢 NEW: Premium Dynamic HTML Toast Alert Engine
+function showToastAlert(title, body) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-card';
+
+    toast.innerHTML = `
+        <h4>🔔 ${title}</h4>
+        <p>${body}</p>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto-remove element from memory after fade animation closes
+    setTimeout(() => {
+        toast.remove();
+    }, 4000);
+}
+
+// 🟢 NEW: Integrated Foreground Messaging Routing
+messaging.onMessage((payload) => {
+    console.log('🔔 Foreground message received: ', payload);
+
+    // 1. Pop up our beautiful design Toast Alert!
+    showToastAlert(payload.notification.title, payload.notification.body);
+
+    // 2. Keep the OS push banner working as a secondary indicator
+    new Notification(payload.notification.title, {
+        body: payload.notification.body,
+        icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png'
+    });
+
+    // 3. Live update the workflow cards pipeline grid on screen instantly!
+    loadTasks();
+});

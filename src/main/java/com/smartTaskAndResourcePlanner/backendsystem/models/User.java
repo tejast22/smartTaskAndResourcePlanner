@@ -2,8 +2,7 @@ package com.smartTaskAndResourcePlanner.backendsystem.models;
 
 import jakarta.persistence.*;
 import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "users")
@@ -19,11 +18,12 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    // MULTI-DEVICE UPGRADE: Automatically maps a hidden child collection table in Supabase
+    // Premium multi-device list tracking setup with strict ordering for PostgreSQL
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_fcm_tokens", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "token", length = 512)
-    private Set<String> fcmTokens = new HashSet<>();
+    @OrderColumn(name = "token_order") // Maintains exact chronological device login sequence
+    private List<String> fcmTokens = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Task> tasks;
@@ -42,9 +42,8 @@ public class User {
     public String getPassword(){return password;}
     public void setPassword(String password){this.password = password;}
 
-    // Updated Getters and Setters for Collection Token Set
-    public Set<String> getFcmTokens(){return fcmTokens;}
-    public void setFcmTokens(Set<String> fcmTokens){this.fcmTokens = fcmTokens;}
+    public List<String> getFcmTokens() { return fcmTokens; }
+    public void setFcmTokens(List<String> fcmTokens) { this.fcmTokens = fcmTokens; }
 
     public List<Task> getTasks(){return tasks;}
     public void setTasks(List<Task> tasks){this.tasks = tasks;}

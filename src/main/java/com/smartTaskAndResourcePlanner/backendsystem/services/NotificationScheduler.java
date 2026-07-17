@@ -33,7 +33,6 @@ public class NotificationScheduler {
         try {
             if (FirebaseApp.getApps().isEmpty()) {
                 InputStream serviceAccount;
-
                 String firebaseConfigEnv = System.getenv("FIREBASE_CREDENTIALS_JSON");
 
                 if (firebaseConfigEnv != null && !firebaseConfigEnv.trim().isEmpty()) {
@@ -85,8 +84,8 @@ public class NotificationScheduler {
             if (task.getUser() != null) {
                 String username = task.getUser().getUsername();
 
-                // Read the whole set collection of active device addresses
-                java.util.Set<String> tokens = task.getUser().getFcmTokens();
+                // Successfully matched onto our ordered list collection
+                List<String> tokens = task.getUser().getFcmTokens();
 
                 System.out.println(">>> MATCH FOUND: Preparing multi-device push dispatch for: " + task.getTitle());
 
@@ -95,7 +94,6 @@ public class NotificationScheduler {
                     continue;
                 }
 
-                // DYNAMIC MULTI-CAST: Fire the notification engine to every screen concurrently!
                 for (String token : tokens) {
                     try {
                         com.google.firebase.messaging.Message message = com.google.firebase.messaging.Message.builder()
@@ -114,7 +112,6 @@ public class NotificationScheduler {
                     }
                 }
 
-                // Mark the task reminder loop flag as complete after hitting all devices
                 task.setReminderSent(true);
                 taskRepository.save(task);
             }
