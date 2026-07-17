@@ -37,7 +37,9 @@ try {
 
 // Wakes up the background thread when a user clicks on the native taskbar notification card
 self.addEventListener('notificationclick', (event) => {
-    console.log('🎯 Notification clicked! Target URL: http://localhost:8080/');
+    // 🌐 DYNAMIC DOMAIN: Automatically detects if you are on localhost or Render!
+    const targetUrl = self.location.origin;
+    console.log(`🎯 Notification clicked! Target URL: ${targetUrl}`);
 
     // 1. Immediately dismiss the notification banner from the taskbar
     event.notification.close();
@@ -46,17 +48,17 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((windowClients) => {
-                // Check if your local port is already open in any tab
+                // Check if our website domain is already open in any tab
                 for (let i = 0; i < windowClients.length; i++) {
                     const client = windowClients[i];
-                    if (client.url.includes('localhost:8080') && 'focus' in client) {
+                    if (client.url.startsWith(targetUrl) && 'focus' in client) {
                         // Perfect! Bring the user straight to that already-open tab
                         return client.focus();
                     }
                 }
-                // If the tab was closed, open a brand-new one pointing to localhost
+                // If the tab was closed, open a brand-new one pointing to our dynamic domain
                 if (clients.openWindow) {
-                    return clients.openWindow('http://localhost:8080/');
+                    return clients.openWindow(targetUrl);
                 }
             })
     );
