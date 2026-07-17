@@ -63,3 +63,21 @@ self.addEventListener('notificationclick', (event) => {
             })
     );
 });
+// ==========================================
+// BACKGROUND MESSAGE LISTENER CORE
+// ==========================================
+
+// This specific listener wakes up when the browser or app is completely CLOSED!
+messaging.onBackgroundMessage((payload) => {
+    console.log('🤖 Background message received in worker: ', payload);
+
+    const notificationTitle = payload.notification.title || "Task Reminder!";
+    const notificationOptions = {
+        body: payload.notification.body || "You have an upcoming task.",
+        icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png',
+        badge: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png'
+    };
+
+    // Forces the phone or computer OS to show the native notification banner
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+});
