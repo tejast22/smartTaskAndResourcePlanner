@@ -175,23 +175,113 @@
         /* 📱 Targets screens like mobile phones (768px wide or smaller) */
         @media screen and (max-width: 768px) {
 
-            /* Force flexbox containers to stack vertically instead of horizontally */
-            .main-container, .dashboard-grid, .task-columns {
+            /* 1. Stack the main layout and fix the Sidebar ID targeting */
+            .main-container {
                 flex-direction: column !important;
-                display: flex;
             }
 
-            /* Make sidebars or main columns take up the full width of the phone screen */
-            .sidebar, .main-content, .column {
+            #sidebar {
                 width: 100% !important;
-                margin-bottom: 15px;
+                box-sizing: border-box; /* Stops padding from pushing it off screen */
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                padding: 20px 15px;
             }
 
-            /* Keep images from overflowing the phone boundaries */
-            img {
-                max-width: 100%;
-                height: auto;
+            #workspace {
+                padding: 15px; /* Less padding on small screens */
             }
+
+            /* 2. Collapse the Giant Navbar */
+            header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+                padding: 15px;
+            }
+
+            #auth-container {
+                width: 100%;
+            }
+
+            #auth-inputs {
+                flex-direction: column; /* Stacks the inputs vertically */
+                width: 100%;
+            }
+
+            #auth-inputs input, #auth-inputs button {
+                width: 100%; /* Makes buttons and inputs edge-to-edge for easy tapping */
+                box-sizing: border-box;
+            }
+
+            /* 3. THE TABLE-TO-CARD FLIP MAGIC */
+            table, thead, tbody, th, td, tr {
+                display: block; /* Shatters the rigid table structure */
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            /* Hide the top header row completely */
+            thead tr {
+                display: none;
+            }
+
+            /* Turn each row into a beautifully padded UI Card */
+            tbody tr {
+                background-color: var(--card-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 10px;
+                margin-bottom: 15px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            }
+
+            /* Shift data to the right side of the card */
+            td {
+                border: none;
+                border-bottom: 1px solid var(--border-color);
+                position: relative;
+                padding: 12px 12px 12px 50%; /* 50% left padding makes room for our fake labels */
+                text-align: right;
+                min-height: 24px;
+                font-size: 14px;
+            }
+
+            /* Remove the bottom line from the last item (Actions) */
+            td:last-child {
+                border-bottom: none;
+                display: flex;
+                justify-content: flex-end;
+            }
+
+            /* Inject labels on the left side to replace the hidden table headers */
+            td::before {
+                position: absolute;
+                top: 12px;
+                left: 12px;
+                width: 45%;
+                white-space: nowrap;
+                text-align: left;
+                font-weight: 700;
+                color: var(--text-muted);
+                font-size: 11px;
+                text-transform: uppercase;
+            }
+
+            /* Map the specific labels for the Active Tasks Table */
+            #active-tasks-section td:nth-of-type(1)::before { content: "ID"; }
+            #active-tasks-section td:nth-of-type(2)::before { content: "Title"; }
+            #active-tasks-section td:nth-of-type(3)::before { content: "Status"; }
+            #active-tasks-section td:nth-of-type(4)::before { content: "Priority"; }
+            #active-tasks-section td:nth-of-type(5)::before { content: "Due Date"; }
+            #active-tasks-section td:nth-of-type(6)::before { content: "Actions"; }
+
+            /* Map the specific labels for the Completed Tasks Table */
+            #completed-tasks-section td:nth-of-type(1)::before { content: "ID"; }
+            #completed-tasks-section td:nth-of-type(2)::before { content: "Title"; }
+            #completed-tasks-section td:nth-of-type(3)::before { content: "Status"; }
+            #completed-tasks-section td:nth-of-type(4)::before { content: "Priority"; }
+            #completed-tasks-section td:nth-of-type(5)::before { content: "Completed At"; }
+            #completed-tasks-section td:nth-of-type(6)::before { content: "Actions"; }
         }
     </style>
 </head>
